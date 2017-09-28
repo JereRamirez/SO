@@ -69,7 +69,7 @@ socket_t crear_listening_socket(char* host, char* port);
 
 ////Acepta la conexion de un cliente (accept()).
 
-socket_t aceptar_conexion(socket_t listeningSocket, struct sockaddr_in hostRemoto, size_t hostRemotoLen);
+socket_t aceptar_conexion(socket_t listeningSocket, struct sockaddr_in hostRemoto, socklen_t hostRemotoLen);
 
 //Recibe un paquete de información.
 

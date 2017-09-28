@@ -71,9 +71,9 @@ socket_t crear_listening_socket(char* host, char* port) {
 
 //Para servidor
 //Acepta la conexion de un cliente (accept()).
-socket_t aceptar_conexion(socket_t listeningSocket, struct sockaddr_in hostRemoto, size_t hostRemotoLen) {
+socket_t aceptar_conexion(socket_t listeningSocket, struct sockaddr_in hostRemoto, socklen_t hostRemotoLen) {
 	/*struct sockaddr_in hostRemoto;
-	size_t hostRemotoLen = sizeof(hostRemoto);*/	/*Lo comento porque en vez de ponerlo aca, lo pongo por fuera de la funcion y se lo paso*/
+	socklen_t hostRemotoLen = sizeof(hostRemoto);*/	/*Lo comento porque en vez de ponerlo aca, lo pongo por fuera de la funcion y se lo paso*/
 	socket_t nuevoSocket = accept(listeningSocket,(struct sockaddr*) &hostRemoto, &hostRemotoLen);
 	if (nuevoSocket == -1)
 		perror("Error al aceptar el socket");
