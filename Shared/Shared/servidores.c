@@ -9,10 +9,14 @@
 
 
 socket_t levantar_servidor(){
+
+	char* port;
 	socket_t listening_socket;
 	socket_t socket_cliente;
 
-	listening_socket = crear_listening_socket(HOST, PORT); //que no se de donde saco el host y el port
+	port = get_port();
+
+	listening_socket = crear_listening_socket(HOST, port); //que no se de donde saco el host y el port
 
 	listen(listening_socket, BACKLOG);
 
@@ -25,10 +29,13 @@ socket_t levantar_servidor(){
 }
 
 void levantar_servidor_fork(){
+	char* port;
 	socket_t listening_socket;
 	socket_t socket_cliente;
 
-	listening_socket = crear_listening_socket(HOST, PORT); //que no se de donde saco el host y el port
+	port = get_port();
+
+	listening_socket = crear_listening_socket(HOST, port); //que no se de donde saco el host y el port
 	listen(listening_socket, BACKLOG);
 
 	struct sockaddr_in hostRemoto;

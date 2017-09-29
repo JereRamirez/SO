@@ -13,7 +13,7 @@
 #include <Shared/servidores.h>
 
 int main(void) {
-	levanar_servidor();
+	levantar_servidor();
 	//Deberia levantar un cliente para comunicarse con FS??
 	return EXIT_SUCCESS;
 }

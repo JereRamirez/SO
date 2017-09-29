@@ -57,6 +57,14 @@ typedef struct t_paquete_D{
 	char* archivo_global;
 } t_paquete_D;
 
+//Pide el ingreso de un ip
+
+char *get_host();
+
+//Pide el ingreso de un puerto
+
+char *get_port();
+
 //Crea y conecta un socket cliente a un servidor
 //Invoca a configurar_addrinfo, crea el socket (socket()), y lo conecta (connect()). Devuelve el socket cliente.
 

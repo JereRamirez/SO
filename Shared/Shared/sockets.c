@@ -12,6 +12,7 @@
 //Para cliente y servidor
 //Configura addrinfo con datos que recibe.
 struct addrinfo* configurar_addrinfo(char* host, char*port) {
+
 	struct addrinfo hints, *serverInfo;
 	int16_t res;
 	memset(&hints, 0, sizeof(hints));
@@ -325,4 +326,17 @@ int recibir_archivo(socket_t fd){
     return 0;
 }
 
+char *get_host(){
+	char *host = malloc(20);
+	printf("Ingrese el ip\n");
+	scanf("%s", host);
+	return host;
+}
+
+char *get_port(){
+	char *port = malloc(20);
+	printf("Ingrese el puerto\n");
+	scanf("%s", port);
+	return port;
+}
 

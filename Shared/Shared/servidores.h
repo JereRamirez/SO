@@ -10,8 +10,7 @@
 
 #include "sockets.h"
 
-#define PORT "6667"
-#define HOST "hostlocal"
+#define HOST "localhost"
 #define BACKLOG 5
 
 //Inicia un servidor.
