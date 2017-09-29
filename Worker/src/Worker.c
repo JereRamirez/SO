@@ -10,8 +10,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <Shared/servidores.h>
 
 int main(void) {
-	puts("Proceso Worker"); /* prints  */
-	return EXIT_SUCCESS;
+	levantar_servidor();
+	return 0;
 }

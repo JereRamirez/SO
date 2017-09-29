@@ -13,6 +13,7 @@ socket_t levantar_servidor(){
 	socket_t socket_cliente;
 
 	listening_socket = crear_listening_socket(HOST, PORT); //que no se de donde saco el host y el port
+
 	listen(listening_socket, BACKLOG);
 
 	struct sockaddr_in hostRemoto;

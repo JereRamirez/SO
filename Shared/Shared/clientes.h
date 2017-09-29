@@ -26,4 +26,12 @@ socket_t conectarse_a_fsystem(char* host, char*port);
 
 socket_t conectarse_a_datanode(char* host, char*port);
 
+//Funcion que pide un ip
+
+char *get_host();
+
+//Funcion que pide un puerto
+
+char *get_port();
+
 #endif /* CLIENTES_H_ */

@@ -6,6 +6,7 @@
  */
 
 #include "clientes.h"
+#include <stdio.h>
 
 //Funcion que usa Master, quien sabe a que host y port conectarse (porque se lo dijo Yama)
 socket_t conectarse_a_worker(char* host, char*port){
@@ -35,3 +36,16 @@ socket_t conectarse_a_datanode(char* host, char*port){
 	return server_socket;
 }
 
+char *get_host(){
+	char *host = malloc(20);
+	scanf("%s", host);
+	printf("IP = %s \n", host);
+	return host;
+}
+
+char *get_port(){
+	char *port = malloc(20);
+	scanf("%s", port);
+	printf("Puerto = %s \n", port);
+	return port;
+}
