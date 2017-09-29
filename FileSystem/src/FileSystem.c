@@ -11,9 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <Shared/servidores.h>
+#include "consola.h"
 
 int main(void) {
-	levantar_servidor();
+	levantar_consola();
+	//levantar_servidor();
 	//Deberia levanar un cliente para conectarse con DataNode?
 	return EXIT_SUCCESS;
 }

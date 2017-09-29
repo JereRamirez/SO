@@ -12,22 +12,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-/*
-  Function Declarations for builtin shell commands:
- */
-int lsh_exit(char **args);
-int lsh_format(char **args);
-int lsh_rm(char **args);
-int lsh_rename(char **args);
-int lsh_mv(char **args);
-int lsh_cat(char **args);
-int lsh_mkdir(char **args);
-int lsh_cpfrom(char **args);
-int lsh_cpto(char **args);
-int lsh_cpblock(char **args);
-int lsh_md5(char **args);
-int lsh_ls(char **args);
-int lsh_info(char **args);
+#include "funcionesConsola.h"
+#include "consola.h"
 
 /*
   List of builtin commands, followed by their corresponding functions.
@@ -64,292 +50,9 @@ int (*builtin_func[]) (char **) = {
   &lsh_info
 };
 
+
 int lsh_num_builtins() {
   return sizeof(builtin_str) / sizeof(char *);
-}
-
-/*
-  Builtin function implementations.
-*/
-
-/**
-   @brief Builtin command: exit.
-   @param args List of args.  Not examined.
-   @return Always returns 0, to terminate execution.
- */
-int lsh_exit(char **args)
-{
-  return 0;
-}
-
-/**
-	@brief Builtin command: format.
-	@param args List of args. Not examined.
-	@return Always return 1, to continue executing.
-*/
-int lsh_format(char **args)
-{
-	if (args[1] != NULL){
-		fprintf(stderr, "lsh: incorrect number of arguments\n");
-	} else {
-	printf("Estoy andando\n");
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: rm -d
-	@param args List of args. args[0] is "rm". args[1] is "-d". args[2] is the directory path.
-	@return Always return 1, to continue executing.
-*/
-int lsh_rm_d(char **args)
-{
-	if (args[2] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"rm -d\"\n"); /*puede haber error aca, ojo*/
-	} else {
-		if(args[3] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia eliminar un directorio\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: rm -b
-	@param args List of args. args[0] is "rm". args[1] is "-b". args[2] is the file path. args[3] is the block path. args[4] is the copy number.
-	@return Always return 1, to continue executing.
-*/
-int lsh_rm_b(char **args)
-{
-	if (args[2] == NULL || args[3] == NULL || args[4] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"rm -b\"\n"); /*puede haber error aca, ojo*/
-	} else {
-		if(args[5] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo debería eliminar la copia de un bloque\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: rm
-	@param args List of args. args[0] is "rm". args[1] is the file path.
-	@return Always return 1, to continue executing.
-*/
-int lsh_rm(char **args)
-{
-	if(args[1] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"rm\"\n");
-	} else {
-		if(strcmp(args[1], "-d") == 0){
-			lsh_rm_d(args);
-		} else {
-			if(strcmp(args[1], "-b") == 0){
-				lsh_rm_b(args);
-			} else {
-				if(args[2] != NULL){
-					fprintf(stderr, "lsh: incorrect number of arguments\n");
-				} else {
-					printf("Yo deberia eliminar un archivo\n");
-				}
-			}
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: rename
-	@param args List of args. args[0] is "rename". args[1] is the file or directory path. args[2] is the new name.
-	@return Always return 1, to continue executing.
-*/
-int lsh_rename(char **args)
-{
-	if (args[1] == NULL || args[2] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"rename\"\n");
-	} else {
-		if(args[3] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia cambiarle el nombre a un archivo o directorio\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: mv
-	@param args List of args. args[0] is "mv". args[1] is the file or directory path. args[2] is the new path.
-	@return Always return 1, to continue executing.
-*/
-int lsh_mv(char **args)
-{
-	if (args[1] == NULL || args[2] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"mv\"\n");
-	} else {
-		if(args[3] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia mover un archivo o directorio\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: cat
-	@param args List of args. args[0] is "cat". args[1] is the file path.
-	@return Always return 1, to continue executing.
-*/
-int lsh_cat(char **args)
-{
-	if (args[1] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"cat\"\n");
-	} else {
-		if(args[2] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia mostrar el contenido del archivo\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: mkdir
-	@param args List of args. args[0] is "mkdir". args[1] is the directory path.
-	@return Always return 1, to continue executing.
-*/
-int lsh_mkdir(char **args)
-{
-	if (args[1] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"mkdir\"\n");
-	} else {
-		if(args[2] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia crear un directorio\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: cpfrom
-	@param args List of args. args[0] is "cpfrom". args[1] is the origin file path. args[2] is yamafs directory.
-	@return Always return 1, to continue executing.
-*/
-int lsh_cpfrom(char **args)
-{
-	if (args[1] == NULL || args[2] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"cpfrom\"\n");
-	} else {
-		if(args[3] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia copiar un archivo a yamafs\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: cpto
-	@param args List of args. args[0] is "cpto". args[1] is the yamafs file path. args[2] is the filesystem directory.
-	@return Always return 1, to continue executing.
-*/
-int lsh_cpto(char **args)
-{
-	if (args[1] == NULL || args[2] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"cpto\"\n");
-	} else {
-		if(args[3] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia copiar un archivo local a yamafs\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: cpblock
-	@param args List of args. args[0] is "cpblock". args[1] is the file path. args[2] is the block number. args[3] is the node id.
-	@return Always return 1, to continue executing.
-*/
-int lsh_cpblock(char **args)
-{
-	if (args[1] == NULL || args[2] == NULL || args[3] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"cpblock\"\n");
-	} else {
-		if(args[4] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo debería crear una copia de un bloque de un archivo en el nodo dado\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: md5
-	@param args List of args. args[0] is "md5". args[1] is the yamafs file path.
-	@return Always return 1, to continue executing.
-*/
-int lsh_md5(char **args)
-{
-	if (args[1] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"md5\"\n");
-	} else {
-		if(args[2] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia solicitar el MD5 de un archivo en yamafs\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: ls
-	@param args List of args. args[0] is "ls". args[1] is the directory path.
-	@return Always return 1, to continue executing.
-*/
-int lsh_ls(char **args)
-{
-	if (args[1] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"ls\"\n");
-	} else {
-		if(args[2] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia listar los archivos de un directorio\n");
-		}
-	}
-	return 1;
-}
-
-/**
-	@brief Builtin command: info
-	@param args List of args. args[0] is "info". args[1] is the file path.
-	@return Always return 1, to continue executing.
-*/
-int lsh_info (char **args)
-{
-	if (args[1] == NULL){
-		fprintf(stderr, "lsh: expected argument to \"info\"\n");
-	} else {
-		if(args[2] != NULL){
-			fprintf(stderr, "lsh: incorrect number of arguments\n");
-		} else {
-			printf("Yo deberia mostrar toda la informacion de un archivo\n");
-		}
-	}
-	return 1;
 }
 
 /**
@@ -405,8 +108,7 @@ int lsh_execute(char **args)
   return lsh_launch(args);
 }
 
-#define LSH_TOK_BUFSIZE 64
-#define LSH_TOK_DELIM " \t\r\n\a"
+
 /**
    @brief Split a line into tokens (very naively).
    @param line The line.
@@ -474,7 +176,7 @@ void lsh_loop(void)
    @param argv Argument vector.
    @return status code
  */
-int main(int argc, char **argv)
+int levantar_consola()
 {
   // Load config files, if any.
 
