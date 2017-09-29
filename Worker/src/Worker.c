@@ -13,6 +13,6 @@
 #include <Shared/servidores.h>
 
 int main(void) {
-	levantar_servidor();
-	return 0;
+	levantar_servidor_fork();
+	return EXIT_SUCCESS;
 }

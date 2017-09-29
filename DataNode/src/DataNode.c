@@ -10,8 +10,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <Shared/servidores.h>
 
 int main(void) {
-	puts("Proceso DataNode"); /* prints  */
+	levantar_servidor();
 	return EXIT_SUCCESS;
 }

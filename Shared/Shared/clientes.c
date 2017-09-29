@@ -38,6 +38,7 @@ socket_t conectarse_a_datanode(char* host, char*port){
 
 char *get_host(){
 	char *host = malloc(20);
+	printf("Ingrese el ip\n");
 	scanf("%s", host);
 	printf("IP = %s \n", host);
 	return host;
@@ -45,6 +46,7 @@ char *get_host(){
 
 char *get_port(){
 	char *port = malloc(20);
+	printf("Ingrese el puerto\n");
 	scanf("%s", port);
 	printf("Puerto = %s \n", port);
 	return port;

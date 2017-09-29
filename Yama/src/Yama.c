@@ -10,8 +10,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <Shared/servidores.h>
 
 int main(void) {
-	puts("Proceso Yama"); /* prints  */
+	levanar_servidor();
+	//Deberia levantar un cliente para comunicarse con FS??
 	return EXIT_SUCCESS;
 }

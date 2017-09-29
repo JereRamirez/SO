@@ -10,8 +10,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <Shared/clientes.h>
 
 int main(void) {
-	puts("Proceso Master"); /* prints  */
+	char* host;
+	char* port;
+	host = get_host();
+	port = get_port();
+
+	int socket;
+
+	socket = conectarse_a_yama(host, port);
+
 	return EXIT_SUCCESS;
 }

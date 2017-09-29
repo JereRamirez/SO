@@ -10,8 +10,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <Shared/servidores.h>
 
 int main(void) {
-	puts("Proceso yamaFS"); /* prints  */
+	levantar_servidor();
+	//Deberia levanar un cliente para conectarse con DataNode?
 	return EXIT_SUCCESS;
 }
