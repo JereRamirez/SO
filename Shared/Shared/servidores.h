@@ -17,11 +17,11 @@
 //Funcion que se usa para DataNode y FileSystem
 //El socket que devuelve va a ser argumento de una funcion "do_processing"
 
-socket_t levantar_servidor();
+socket_t levantar_servidor(char* port);
 
 //Inicia un servidor que se forkea.
 //Funcion que se usa para los Workers
-void levantar_servidor_fork();
+void levantar_servidor_fork(char* port);
 
 //Funcion usada dentro de levantar_servidor_fork.
 //Funcion que recive a traves de un socket una funcion y la ejecuta?

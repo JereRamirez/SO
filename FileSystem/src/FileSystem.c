@@ -13,9 +13,19 @@
 #include <Shared/servidores.h>
 #include "consola.h"
 
-int main(void) {
-	levantar_consola();
-	//levantar_servidor();
-	//Deberia levanar un cliente para conectarse con DataNode?
+char port[20];
+
+int main(int argc, char *argv[]) {
+	/********************************************/
+	if (argc < 2){
+    printf("Ingrese puerto: ");
+    scanf("%s",port);
+	}
+	else
+	strcpy(port,argv[1]);
+	/********************************************/
+
+	socket_t socket_cliente = levantar_servidor(port);
+
 	return EXIT_SUCCESS;
 }

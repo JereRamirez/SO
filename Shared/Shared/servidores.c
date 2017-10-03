@@ -8,13 +8,10 @@
 #include "servidores.h"
 
 
-socket_t levantar_servidor(){
+socket_t levantar_servidor(char* port){
 
-	char* port;
 	socket_t listening_socket;
 	socket_t socket_cliente;
-
-	port = get_port();
 
 	listening_socket = crear_listening_socket(HOST, port); //que no se de donde saco el host y el port
 
@@ -23,17 +20,17 @@ socket_t levantar_servidor(){
 	struct sockaddr_in hostRemoto;
 	size_t hostRemotoLen = sizeof(hostRemoto);
 
+	printf("Esperando conexiones\n");
+
 	socket_cliente = aceptar_conexion(listening_socket, hostRemoto, hostRemotoLen);
 
 	return socket_cliente;
 }
 
-void levantar_servidor_fork(){
-	char* port;
+void levantar_servidor_fork(char* port){
+
 	socket_t listening_socket;
 	socket_t socket_cliente;
-
-	port = get_port();
 
 	listening_socket = crear_listening_socket(HOST, port); //que no se de donde saco el host y el port
 	listen(listening_socket, BACKLOG);
@@ -41,6 +38,8 @@ void levantar_servidor_fork(){
 	struct sockaddr_in hostRemoto;
 	size_t hostRemotoLen = sizeof(hostRemoto);
 	int pid;
+
+	printf("Esperando conexiones\n");
 
 	while(1){
 		socket_cliente = aceptar_conexion(listening_socket, hostRemoto, hostRemotoLen);

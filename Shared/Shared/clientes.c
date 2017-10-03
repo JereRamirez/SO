@@ -16,7 +16,7 @@ socket_t conectarse_a_worker(char* host, char*port){
 }
 
 //Funcion que usa Master para conectarse a Yama
-socket_t conectarse_a_yama(char* host, char*port){
+socket_t conectarse_a_yama(char* host, char* port){
 	socket_t server_socket;
 	server_socket = conectar_cliente(host, port);
 	return server_socket;

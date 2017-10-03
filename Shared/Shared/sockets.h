@@ -23,39 +23,44 @@
 #define PACKAGESIZE 1024
 
 typedef int socket_t;
+typedef char host_t[20];
+typedef char port_t[20];
 
 //Primer paquete que recibe Master por parte de YAMA
 typedef struct t_paquete_A{
-	char* ip_worker;
-	char* port_worker;
+	int ip_worker_long;
+	void* ip_worker;
+	int port_worker_long;
+	void* port_worker;
 	int bloque;
-	char* archivo_temporal;
-} t_paquete_A;
+	uint32_t archivo_temporal_long;
+	void* archivo_temporal;
+} __attribute__((packed)) t_paquete_A;
 
 //Segundo paquete que recibe Master por parte de YAMA
 typedef struct t_paquete_B{
-	char* ip_worker;
-	char* port_worker;
+	host_t ip_worker;
+	port_t port_worker;
 	char* archivo_temporal;
 	char* archivo_local;
-} t_paquete_B;
+} __attribute__((packed)) t_paquete_B;
 
 //Tercer paquete que recibe Master por parte de YAMA
 typedef struct t_paquete_C{
-	char* ip_worker;
-	char* port_worker;
+	host_t ip_worker;
+	port_t port_worker;
 	char* archivo_local;
-	char* ip_encargado;
-	char* port_encargado;
+	host_t ip_encargado;
+	port_t port_encargado;
 	char* ruta;
-} t_paquete_C;
+} __attribute__((packed)) t_paquete_C;
 
 //Cuarto paquete que recibe Master por parte de YAMA
 typedef struct t_paquete_D{
-	char* ip_worker;
-	char* port_worker;
+	host_t ip_worker;
+	port_t port_worker;
 	char* archivo_global;
-} t_paquete_D;
+} __attribute__((packed)) t_paquete_D;
 
 //Pide el ingreso de un ip
 
@@ -123,7 +128,6 @@ int enviar_archivo(socket_t fd, char* archivo);
 //Recibe un archivo: Transformador/Reductor.
 
 int recibir_archivo(socket_t fd);
-
 
 
 #endif /* SOCKETS_H_ */

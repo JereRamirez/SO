@@ -49,7 +49,11 @@ socket_t conectar_cliente(char* host, char*port) {
 		exit(EXIT_FAILURE);
 	}
 	freeaddrinfo(serverInf);
+
+	printf("Conectado al servidor.\n");
+
 	return serverSock;
+
 }
 
 //Para servidor
@@ -113,14 +117,23 @@ void* recibir_paquete(socket_t fd) {
 
 //Usado por la funcion recibir_paquete()
 //Recibe un paquete del tipo A. Devuelve el paquete recibido.
-t_paquete_A* recibir_paquete_A(socket_t fd) {
+t_paquete_A* recibir_paquete_A(socket_t fd){
 
-	t_paquete_A* paquete_recibido = malloc(sizeof(t_paquete_A));
-	recv(fd, &paquete_recibido->ip_worker, sizeof(char*), MSG_WAITALL);
-	recv(fd, &paquete_recibido->port_worker, sizeof(char*), MSG_WAITALL);
+	t_paquete_A* paquete_recibido;
+
+	recv(fd, &paquete_recibido->ip_worker_long, sizeof(int), MSG_WAITALL);
+	paquete_recibido->ip_worker = malloc(paquete_recibido->ip_worker_long);
+	recv(fd, paquete_recibido->ip_worker, paquete_recibido->ip_worker_long, MSG_WAITALL);
+	recv(fd, &paquete_recibido->port_worker_long, sizeof(int), MSG_WAITALL);
+	paquete_recibido->port_worker = malloc(paquete_recibido->port_worker_long);
+	recv(fd, paquete_recibido->port_worker, paquete_recibido->port_worker_long, MSG_WAITALL);
 	recv(fd, &paquete_recibido->bloque, sizeof(int), MSG_WAITALL);
-	recv(fd, &paquete_recibido->archivo_temporal, sizeof(char*), MSG_WAITALL);
+	recv(fd, &paquete_recibido->archivo_temporal_long, sizeof(uint32_t), MSG_WAITALL);
+	paquete_recibido->archivo_temporal = malloc(paquete_recibido->archivo_temporal_long);
+	recv(fd, paquete_recibido->archivo_temporal, paquete_recibido->archivo_temporal_long, MSG_WAITALL);
+
 	return paquete_recibido;
+
 }
 
 //Usado por la funcion recibir_paquete()
@@ -163,23 +176,42 @@ t_paquete_D* recibir_paquete_D(socket_t fd) {
 //Envia un paquete del tipo A.
 void enviar_paquete_A(socket_t fd, char* ip_worker, char* port_worker, int bloque, char* archivo_temporal){
 
-	int res;
 	int codigo = 1;
-	int tamanioPaquete = (3 * sizeof(char*)) + (sizeof(int)) + (sizeof(codigo));
+	int res;
+	void* buffer;
+	t_paquete_A p;
 
-	void* buffer = malloc(tamanioPaquete);
-	memcpy(buffer, &codigo, sizeof(codigo));
-	memcpy(buffer + (sizeof(codigo)), &ip_worker, sizeof(char*));
-	memcpy(buffer + (sizeof(codigo)) + (sizeof(char*)), &port_worker, sizeof(char*));
-	memcpy(buffer + (sizeof(codigo)) + (2 * sizeof(char*)), &bloque, sizeof(int));
-	memcpy(buffer + (sizeof(codigo)) + (2 * sizeof(char*)) + (sizeof(int)), &archivo_temporal, sizeof(char*));
+	p.ip_worker = malloc(20+1);
+	p.port_worker = malloc(20+1);
+	p.archivo_temporal = malloc(100+1);
 
-	res = send(fd, buffer, tamanioPaquete, MSG_WAITALL);
+	strcpy(p.ip_worker, ip_worker);
+	p.ip_worker_long = strlen(p.ip_worker)+1;
+
+	strcpy(p.port_worker, port_worker);
+	p.port_worker_long = strlen(p.port_worker)+1;
+
+	strcpy(p.archivo_temporal, archivo_temporal);
+	p.archivo_temporal_long = strlen(p.archivo_temporal)+1;
+
+	p.bloque = bloque;
+
+	int tamanio_paquete_A = (3 * sizeof(int)) + (sizeof(uint32_t)) + p.ip_worker_long + p.port_worker_long + p.archivo_temporal_long;
+
+	int tamanio_paquete = (tamanio_paquete_A + (sizeof(int)));  //el int es por el codigo
+
+	buffer = malloc(tamanio_paquete);
+
+	memcpy(buffer, &codigo, sizeof(int));
+	memcpy(buffer + (sizeof(int)), &p, tamanio_paquete_A);
+
+	res = send(fd, buffer, tamanio_paquete, MSG_WAITALL);
 
 	if (res == -1) {
 		perror("No se pudo enviar los datos");
 	}
 	free(buffer);
+
 }
 
 //Envia un paquete del tipo B.
@@ -259,7 +291,7 @@ int enviar_archivo(socket_t fd, char* archivo){
 	//Abre el archivo
     FILE *fp = fopen(archivo, "rb");
     if(fp == NULL){
-		printf("Error al abrir archivo");
+		printf("Error al abrir archivo\n");
         return 1;
     }
 
@@ -311,9 +343,11 @@ int recibir_archivo(socket_t fd){
 			return 1;
     	}
 
+
 	//Recibe la informacion en pedazos de 1024 bytes
     while((bytesReceived = recv(fd, recvBuff, PACKAGESIZE, MSG_WAITALL)) > 0){
-		fflush(stdout);
+
+    	fflush(stdout);
         // recvBuff[n] = 0;
         fwrite(recvBuff, 1, bytesReceived, fp);
         // printf("%s \n", recvBuff);
@@ -326,6 +360,8 @@ int recibir_archivo(socket_t fd){
     return 0;
 }
 
+
+/*
 char *get_host(){
 	char *host = malloc(20);
 	printf("Ingrese el ip\n");
@@ -339,4 +375,5 @@ char *get_port(){
 	scanf("%s", port);
 	return port;
 }
+*/
 
