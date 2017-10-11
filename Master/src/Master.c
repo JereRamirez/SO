@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <Shared/clientes.h>
 #include <Shared/sockets.h>
+#include <Shared/protocolos.h>
 
 char host[20];
 char port[20];
@@ -37,6 +38,11 @@ int main(int argc, char *argv[]) {
 	//enviar_archivo(socket, "pusheen-sleeping.jpg");
 
 	t_paquete_A* p = recibir_paquete(socket);
+
+	printf("El ip que me mandaron es: %s\n", p->ip_worker);
+	printf("El puerto que me mandaron es: %s\n", p->port_worker);
+	printf("El bloque que me mandaron es: %d\n", p->bloque);
+	printf("El ip que me mandaron es: %s\n", p->archivo_temporal);
 
 	printf("Graciaaaaaaaaaaaas\n");
 

@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <Shared/servidores.h>
 #include <Shared/sockets.h>
+#include <Shared/protocolos.h>
 
 char port[20];
 
