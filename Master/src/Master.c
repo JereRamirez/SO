@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <Shared/clientes.h>
 #include <Shared/sockets.h>
-#include <Shared/protocolos.h>
+#include <Shared/protocolosNew.h>
 
 char host[20];
 char port[20];
@@ -37,12 +37,18 @@ int main(int argc, char *argv[]) {
 
 	//enviar_archivo(socket, "pusheen-sleeping.jpg");
 
-	t_paquete_A* p = recibir_paquete(socket);
+	t_protocolo_almacenamiento_worker* p = recibir_paquete(socket);
 
-	printf("El ip que me mandaron es: %s\n", p->ip_worker);
-	printf("El puerto que me mandaron es: %s\n", p->port_worker);
-	printf("El bloque que me mandaron es: %d\n", p->bloque);
-	printf("El ip que me mandaron es: %s\n", p->archivo_temporal);
+	//printf("El ip que me mandaron es: %s\n", strtok(p->ip_port_worker, ":"));
+	//printf("El puerto que me mandaron es: %s\n", strtok(NULL, ":"));
+	//printf("El nodo que me mandaron es: %d\n", p->nodo);
+	//printf("El bloque que me mandaron es: %d\n", p->bloque);
+	//printf("Los bytes ocupados son: %ld\n", p->bytes_ocupados);
+	//printf("La ruta del archivo es: %s\n", p->archivo_temporal);
+	//printf("La ruta del archivo es: %s\n", p->archivo_transformacion);
+	//printf("La ruta del archivo es: %s\n", p->archivo_reduccion_local);
+	printf("La ruta del archivo es: %s\n", p->archivo_reduccion_global);
+	//printf("El encargado que me mandaron es: %d\n", p->encargado);
 
 	printf("Graciaaaaaaaaaaaas\n");
 
