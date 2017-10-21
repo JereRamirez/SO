@@ -8,25 +8,26 @@
 #ifndef FUNCIONESFILESYSTEM_H_
 #define FUNCIONESFILESYSTEM_H_
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "sockets.h"
 #include <libgen.h>
 #include <pthread.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <stdbool.h>
-#include <commons/string.h>
 #include <commons/collections/list.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <commons/config.h>
 #include <commons/log.h>
 
+#define GETBLOQUE 123
+#define SETBLOQUE 321
+#define HANDSHAKE_NODO 456
+
 #define CANT_COPIAS_BLOQUE 2
 #define TAMANIO_BLOQUE (1024*1024)
 
-#define DIR_TAMANIO_MAX_NOMBRE 255
 #define DIR_CANT_MAX 100
 
 char FILE_DIRECTORIO[100];
@@ -116,6 +117,17 @@ void* mapearArchivo(char* archivo);
 void desmapearArchivo(char* archMapeado, char* archivo);
 u_int32_t bytes_to_megabytes(size_t bytes);
 
+/* FUNCIONES PRINCIPALES */
+
+int cargarConfig(char* path);
+void startFilesystem(char* flag);
+void crearFilesystem();
+void iniciarFilesystemLimpio();
+void iniciarFilesystemConBackUp();
+void cargarBackUp();
+void crearServer(char* puerto);
+void iniciarServer(void* arg);
+
 /* FUNCIONES CONSOLA */
 
 void mostrarConsola();
@@ -135,17 +147,13 @@ void mostrarInfoArchivo(char* archivo);
 
 /* Otras funciones */
 
-int cargarConfig(char* path);
 void informarErrorYLiberarEstructuras(t_config *config_tmp, char *toLog);
 t_list* partirArchivoEnBloques(char* archivo);
 int cantBloquesNecesarios(char* archivo);
 int lenHastaEnter(char* strings);
-void crearServer(char* puerto);
-void iniciarServer(void* arg);
 int procesarMensaje(int fd);
-t_nodo* crearNodo(int fd, char* nombre, char* ip, char* puerto, u_int32_t tamanioData);
+t_nodo* crearNodo(int fd, char* nombre, char* puerto, u_int32_t tamanioData);
 int recibirInfoNodo(int fd);
-void crearFilesystem();
 t_bitmap* crearBitmap(u_int32_t tamanio);
 void printInfoNodo(t_nodo* nodo);
 int cantBloquesLibresNodo(t_nodo* nodo);
