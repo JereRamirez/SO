@@ -14,15 +14,9 @@ int main(int argc, char *argv[]) {
 
 	puts("******* PROCESO FILESYSTEM *******");
 
-	cargarConfig(argv[1]);
+	cargarConfig(argv[2]);
 
-	crearFilesystem();
-
-	crearServer(config.PUERTO);
-
-	pthread_create( &hiloConsola, NULL, (void*)mostrarConsola, NULL);
-
-	pthread_join(hiloConsola, NULL);
+	startFilesystem(argv[1]);
 
 	log_destroy(logger);
 
