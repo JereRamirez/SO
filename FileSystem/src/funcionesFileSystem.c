@@ -229,8 +229,12 @@ void desmapearArchivo(char* archMapeado, char* archivo) {
 	munmap(archMapeado, tamanioArchivo(archivo));
 }
 
-u_int32_t bytes_to_megabytes(size_t bytes){
-	return bytes / (1024*1024);
+float bytesToKilobytes(size_t bytes){
+	return bytes / (1024 + 0.0);
+}
+
+float bytesToMegabytes(size_t bytes){
+	return bytes / ((1024*1024) + 0.0);
 }
 
 /* FIN FUNCIONES AUXILIARES */
@@ -633,16 +637,6 @@ void crearServer(char* puerto){
 	pthread_attr_destroy(&tattr);
 }
 
-t_archivo_info* getInfoArchivo(char* nombre, char* tipo, int dirPadre) {
-	t_archivo_info* info = malloc(sizeof *info);
-	info->disponible = true;
-	info->tipo = tipo;
-	info->nombre = basename(nombre);
-	info->tamanio = tamanioArchivo(nombre);
-	info->directorio = dirPadre;
-
-	return info;
-}
 
 int cantBloquesLibresNodo(t_nodo* nodo){
 	int cant = 0;
@@ -662,14 +656,6 @@ int cantBloquesLibresFs(){
 	}
 	list_iterate(filesystem.nodos, (void*)sumarBloquesLibresNodos);
 	return cant;
-}
-
-
-t_archivo_bloque* crearBloqueArchivo(int numero, int tamanio){
-	t_archivo_bloque* bloqueArchivo = malloc(sizeof(t_archivo_bloque));
-	bloqueArchivo->numeroBloque = numero;
-	bloqueArchivo->tamanio = tamanio;
-	return bloqueArchivo;
 }
 
 t_list* distribuirBloque(){
@@ -707,11 +693,6 @@ t_archivo_nodo_bloque* crearArchivoNodoBloque(){
 	t_archivo_nodo_bloque* tanb = malloc(sizeof(t_archivo_nodo_bloque));
 	tanb->info = malloc(sizeof(t_nodo_info));
 	return tanb;
-}
-
-void destruirArchivoNodoBloque(t_archivo_nodo_bloque* anb1){
-	free(anb1->info);
-	free(anb1);
 }
 
 int getBloqueLibreNodo(t_nodo* nodo){
@@ -816,4 +797,70 @@ int guardarBloque(char* data, size_t tamanio, t_archivo_bloque* ab){
 	return enviarBloqueANodos(ab, bloque);
 }
 
+/* INICIO FUNCIONES DE ARCHIVOS */
 
+t_archivo_info* getInfoArchivo(char* nombre, char* tipo, int dirPadre) {
+	t_archivo_info* info = malloc(sizeof *info);
+	info->disponible = true;
+	info->tipo = tipo;
+	info->nombre = basename(nombre);
+	info->tamanio = tamanioArchivo(nombre);
+	info->directorio = dirPadre;
+
+	return info;
+}
+
+void destruirArchivoNodoBloque(t_archivo_nodo_bloque* anb1){
+	free(anb1->info);
+	free(anb1);
+}
+
+t_archivo_bloque* crearBloqueArchivo(int numero, int tamanio){
+	t_archivo_bloque* bloqueArchivo = malloc(sizeof(t_archivo_bloque));
+	bloqueArchivo->numeroBloque = numero;
+	bloqueArchivo->tamanio = tamanio;
+	return bloqueArchivo;
+}
+
+t_archivo_bloque* buscarBloqueArchivo(t_archivo* archivo, int numeroBloque){
+	t_archivo_bloque* bloque = NULL;
+
+	bool _buscar_bloque(t_archivo_bloque* bloque){
+		return bloque->numeroBloque == numeroBloque;
+	}
+
+	bloque = list_find(archivo->bloquesDeDatos, (void*)_buscar_bloque);
+
+	return bloque;
+}
+
+void mostrarInfoCompletaArchivo(t_archivo* archivo){
+	printInfoArchivo(archivo->info);
+	mostrarBloquesArchivo(archivo->bloquesDeDatos);
+}
+
+void mostrarBloquesArchivo(t_list* bloques_de_datos){
+
+	void mostrar_bloque_datos(t_archivo_bloque* bloque_datos){
+		printf("Bloque Nro: %d\n", bloque_datos->numeroBloque);
+
+		int i=1;
+		void mostrar_nodo_bloque(t_archivo_nodo_bloque* nodo_bloque){
+			printf("Copia %d: nodo: %s, bloque nro: %d\n", i, nodo_bloque->info->nombre, nodo_bloque->numeroBloque);
+			i++;
+		}
+
+		list_iterate(bloque_datos->nodosBloque, (void*)mostrar_nodo_bloque);
+	}
+
+	list_iterate(bloques_de_datos, (void*)mostrar_bloque_datos);
+}
+
+void printInfoArchivo(t_archivo_info* info){
+	printf("Info del archivo %s\n", info->nombre);
+	printf("Tamanio : %zd b, %.2f kb, %.2f mb\n", info->tamanio, bytesToKilobytes(info->tamanio), bytesToMegabytes(info->tamanio));
+
+	printf("Directorio padre: %d\n", info->directorio);
+	printf("Disponible: %d\n", info->disponible);
+	printf("Cantdidad de bloques: %d\n", info->cantBloques);
+}

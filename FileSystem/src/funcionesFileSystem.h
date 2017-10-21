@@ -115,7 +115,8 @@ char* leerArchivo(char *path, size_t tamanio);
 void escribirArchivo(char *path, char *datos, size_t tamanio);
 void* mapearArchivo(char* archivo);
 void desmapearArchivo(char* archMapeado, char* archivo);
-u_int32_t bytes_to_megabytes(size_t bytes);
+float bytes_to_megabytes(size_t bytes);
+float bytesToKilobytes(size_t bytes);
 
 /* FUNCIONES PRINCIPALES */
 
@@ -127,6 +128,17 @@ void iniciarFilesystemConBackUp();
 void cargarBackUp();
 void crearServer(char* puerto);
 void iniciarServer(void* arg);
+
+/* FUNCIONES DE ARCHIVOS */
+
+t_archivo_info* getInfoArchivo(char* nombre, char* tipo, int dirPadre);
+t_archivo_bloque* crearBloqueArchivo(int numero, int tamanio);
+t_archivo_nodo_bloque* crearArchivoNodoBloque();
+void destruirArchivoNodoBloque(t_archivo_nodo_bloque* anb1);
+t_archivo_bloque* buscarBloqueArchivo(t_archivo* archivo, int numeroBloque);
+void mostrarInfoCompletaArchivo(t_archivo* archivo);
+void mostrarBloquesArchivo(t_list* bloques_de_datos);
+void printInfoArchivo(t_archivo_info* info);
 
 /* FUNCIONES CONSOLA */
 
@@ -157,11 +169,7 @@ int recibirInfoNodo(int fd);
 t_bitmap* crearBitmap(u_int32_t tamanio);
 void printInfoNodo(t_nodo* nodo);
 int cantBloquesLibresNodo(t_nodo* nodo);
-t_archivo_info* getInfoArchivo(char* nombre, char* tipo, int dirPadre);
-t_archivo_bloque* crearBloqueArchivo(int numero, int tamanio);
 t_list* distribuirBloque();
-t_archivo_nodo_bloque* crearArchivoNodoBloque();
-void destruirArchivoNodoBloque(t_archivo_nodo_bloque* anb1);
 t_nodo* getNodoParaGuardarBloque(t_list* nodos);
 t_nodo* getNodoParaGuardarBloqueDistintoANodo(t_list* nodos, t_nodo* nodo0);
 int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque);
