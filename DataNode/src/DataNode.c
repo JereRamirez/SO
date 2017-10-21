@@ -94,13 +94,49 @@ int main(int argc, char* argv[]) {
             exit(-1);
     }
     int32_t datosRecibido=1,msg;
-
-    for(;datosRecibido >0;datosRecibido = recibido(socket,&msg,sizeof(msg))){
+    int32_t sizeBus;
+    void* bloqueBin;
+    for(;datosRecibido >0;datosRecibido = recibir(socket,&msg,sizeof(int32_t))){
         switch(msg){
             case GETBLOQUE:
+                datosRecibido= recibir(socket,&msg,sizeof(int32_t));
+                if(!datosRecibido>0)
+                    break;
+                if(msg<cantBloques){
+                    bloqueBin= getBloque(msg,dataBin);
+                    msg=1;
+                    enviar(socket,&msg,sizeof(int32_t));
+                    enviar_todo(socket,bloqueBin,MB);
+                    free(bloqueBin);
+                    bloqueBin=NULL;
+                }else{
+                    msg =-1;
+                    enviar(socket,&msg,sizeof(int32_t));
+                }
 
                 break;
             case SETBLOQUE:
+                datosRecibido= recibir(socket,&msg,sizeof(int32_t));
+                if(!datosRecibido>0)
+                    break;
+                datosRecibido= recibir(socket,&sizeBus,sizeof(int32_t));
+                if(!datosRecibido>0)
+                    break;
+                bloqueBin=malloc(sizeBus);
+                datosRecibido= recibir_todo(socket,bloqueBin,sizeBus);
+                if(!datosRecibido>0)
+                    break;
+
+                if(msg<cantBloques){
+                    setBloque(msg,bloqueBin,sizeBus,dataBin);
+                    bloqueBin=NULL;
+                    msg=1;
+                    enviar(socket,&msg,sizeof(int32_t));
+                }else{
+                    msg =-1;
+                    free(bloqueBin);
+                    enviar(socket,&msg,sizeof(int32_t));
+                }
 
                 break;
             default:
