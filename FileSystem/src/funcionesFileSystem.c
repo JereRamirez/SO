@@ -7,7 +7,7 @@
 
 #include "funcionesFileSystem.h"
 
-/* INICIO FUNCIONES CONFIGURACIÓN */
+/* INICIO FUNCIONES PRINCIPALES */
 
 int cargarConfig(char* path){
 
@@ -39,13 +39,44 @@ int cargarConfig(char* path){
 	return EXIT_SUCCESS;
 }
 
-void informarErrorYLiberarEstructuras(t_config *config_tmp, char *toLog){
-	log_error(logger, toLog);
-	free(config_tmp);
-	log_destroy(logger);
+void startFilesystem(char* flag){
+	if(!strncmp(flag, "--clean", 7)){
+		iniciarFilesystemLimpio();
+	}else{
+		iniciarFilesystemConBackUp();
+	}
 }
 
-/* FIN FUNCIONES CONFIGURACIÓN */
+void iniciarFilesystemLimpio(){
+
+	crearFilesystem();
+
+	crearServer(config.PUERTO);
+
+	pthread_create(&hiloConsola, NULL, (void*)mostrarConsola, NULL);
+
+	pthread_join(hiloConsola, NULL);
+}
+
+void iniciarFilesystemConBackUp(){
+
+	crearFilesystem();
+
+	cargarBackUp();
+
+	crearServer(config.PUERTO);
+
+	pthread_create(&hiloConsola, NULL, (void*)mostrarConsola, NULL);
+
+	pthread_join(hiloConsola, NULL);
+
+}
+
+void cargarBackUp(){
+	return;
+}
+
+/* FIN FUNCIONES PRINCIPALES */
 
 /* INICIO FUNCIONES AUXILIARES */
 
@@ -53,6 +84,11 @@ void errorHandler(char* msj){
 	do{perror(msj);exit(EXIT_FAILURE);} while(0);
 }
 
+void informarErrorYLiberarEstructuras(t_config *config_tmp, char *toLog){
+	log_error(logger, toLog);
+	free(config_tmp);
+	log_destroy(logger);
+}
 
 bool existeArchivo(const char* archivo) {
 	bool rs = true;
@@ -520,7 +556,7 @@ int procesarMensaje(int fd){
 		return -1;
 	}
 	switch(header){
-	case NODO_HOLA_FS:
+	case HANDSHAKE_NODO:
 		if(recibirInfoNodo(fd) < 0){
         return -1;
 		};
@@ -531,17 +567,16 @@ int procesarMensaje(int fd){
 
 
 int recibirInfoNodo(int fd){
-	char* ip = recibirString(fd);
-	char* puerto = recibirString(fd);
-	char* nombre = recibirString(fd);
+
 	u_int32_t cantBloquesData = recibirInt(fd);
-	if(ip == NULL || puerto == NULL || nombre == NULL || cantBloquesData <= 0){
+	char* nombre = recibirString(fd);
+	u_int32_t puerto = recibirInt(fd);
+
+	if(puerto <= 0 || nombre == NULL || cantBloquesData <= 0){
 		return -1;
 	}
-	t_nodo* nodo = crearNodo(fd, nombre, ip, puerto, cantBloquesData);
+	t_nodo* nodo = crearNodo(fd, nombre, string_itoa(puerto), cantBloquesData);
 	list_add(filesystem.nodos, nodo);
-	free(ip);
-	free(puerto);
 	free(nombre);
 	enviarHeader(fd, FS_HOLA_NODO);
 	return 1;
@@ -553,11 +588,11 @@ void crearFilesystem(){
 	filesystem.archivos = list_create();
 }
 
-t_nodo* crearNodo(int fd, char* nombre, char* ip, char* puerto, u_int32_t tamanioData){
+t_nodo* crearNodo(int fd, char* nombre, char* puerto, u_int32_t tamanioData){
 	t_nodo* nodo = malloc(sizeof(t_nodo));
 	nodo->info = malloc(sizeof(t_nodo_info));
 	nodo->info->nombre = string_duplicate(nombre);
-	nodo->info->ip = string_duplicate(ip);
+	nodo->info->ip = NULL;
 	nodo->info->puerto = string_duplicate(puerto);
 	nodo->fd = fd;
 	nodo->conectado = true;
@@ -729,7 +764,7 @@ int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque){
 	printf("FD nodo 1: %d\n", fd1);
 	printf("FD nodo 2: %d\n", fd2);
 	puts("Enviando bloque");
-	enviarHeader(fd1, FS_SETBLOQUE_NODO);
+	enviarHeader(fd1, SETBLOQUE);
 	puts("Header enviado!");
 	enviarInt(fd1, nb1->numeroBloque);
 	puts("Numero de bloque enviado!");
@@ -744,7 +779,7 @@ int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque){
 		marcarBloqueComoUsado(nb1->info->nombre, nb1->numeroBloque);
 		puts("Bloque 1 enviado al primer nodo!");
 	}
-	enviarHeader(fd2, FS_SETBLOQUE_NODO);
+	enviarHeader(fd2, SETBLOQUE);
 	puts("Header enviado!");
 	enviarInt(fd2, nb2->numeroBloque);
 	puts("Numero de bloque enviado!");
