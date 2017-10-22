@@ -368,7 +368,13 @@ void crearDirectorio(char* directorio){
 	if(directorio == NULL){
 		printf("Falta especificar el directorio a crear\n");
 	}else{
-		printf("Creando el directorio: %s \n", directorio);
+		char** path_splitteado = string_split(directorio, "/");
+		int idDirPadre = buscarIdDirectorioPorNombre(path_splitteado[0]);
+		if (!existeDirectorio(path_splitteado[1], idDirPadre)) {
+				crearDir(filesystem.directorios, path_splitteado[1], idDirPadre);
+				printf("El directorio se creo correctamente\n");
+			} else
+				printf("El directorio ya existe\n");
 	}
 }
 
@@ -864,3 +870,153 @@ void printInfoArchivo(t_archivo_info* info){
 	printf("Disponible: %d\n", info->disponible);
 	printf("Cantdidad de bloques: %d\n", info->cantBloques);
 }
+
+/* FIN FUNCIONES DE ARCHIVOS */
+
+/* INICIO FUNCIONES DE DIRECTORIOS */
+
+void destruirDirectorio(t_directorio* directorio){
+	free(directorio);
+}
+
+int eliminarDirectorioPorId(t_list* directorios, int id){
+
+	char* map = mapearArchivo(FILE_DIRECTORIO);
+
+	t_directorio* dir = malloc(sizeof*dir);
+	memcpy(dir, map + ((id-1)*sizeof(t_directorio)), sizeof(t_directorio));
+
+	dir->index = 0;
+	dir->nombre = NULL;
+	dir->padre = -1;
+
+	memcpy(map + ((id-1)*sizeof(t_directorio)), dir, sizeof(t_directorio));
+
+	free(dir);
+	desmapearArchivo(map, FILE_DIRECTORIO);
+
+	bool _buscar_directorio_por_id(t_directorio* dir){
+		return dir->index == id;
+	}
+	list_remove_and_destroy_by_condition(directorios, (void*)buscarDirectorioPorId, (void*)destruirDirectorio);
+
+
+	return 0;
+}
+
+int renombrarDirectorio(t_list* directorios, int id, char* nuevoNombre){
+
+	char* map = mapearArchivo(FILE_DIRECTORIO);
+
+	t_directorio* dir = malloc(sizeof *dir);
+
+	memcpy(dir, map + ((id - 1) * sizeof(t_directorio)), sizeof(t_directorio));
+
+	strcpy(dir->nombre, nuevoNombre);
+
+	memcpy(map + ((id - 1) * sizeof(t_directorio)), dir, sizeof(t_directorio));
+
+	free(dir);
+	desmapearArchivo(map, FILE_DIRECTORIO);
+
+
+	dir = buscarDirectorioPorId(directorios, id);
+	strcpy(dir->nombre, nuevoNombre);
+
+	return 0;
+}
+
+t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre, int padre){
+	bool _dir_buscar_por_nombre(t_directorio* dir){
+		return string_equals_ignore_case(dir->nombre, nombre) && dir->padre == padre;
+	}
+	return list_find(directorios, (void*)_dir_buscar_por_nombre);
+}
+
+t_directorio* buscarDirectorioPorId(t_list* directorios, int id){
+	bool _dir_buscar_por_id(t_directorio* dir){
+		return dir->index == id;
+	}
+	return list_find(directorios, (void*)_dir_buscar_por_id);
+}
+
+int obtenerUltimoIndexDirectorios() {
+
+
+	char* map = mapearArchivo(FILE_DIRECTORIO);
+	int index_new = -1;
+
+	t_directorio* dir;
+	dir = malloc(sizeof *dir);
+	int i = 0;
+	for (i = 0; i < DIR_CANT_MAX; i++) {
+
+		dir = memcpy(dir, map + (i * sizeof(t_directorio)),	sizeof(t_directorio));
+		if (dir->index == 0) {
+			index_new = i + 1;
+			break;
+		}
+	}
+	free(dir);
+	desmapearArchivo(map, FILE_DIRECTORIO);
+
+	return index_new;
+}
+
+void printDirectorio(t_directorio* directorio) {
+	printf("Index: %d, Padre: %d, Nombre: %s\n", directorio->index, directorio->padre, directorio->nombre);
+}
+
+int crearDir(t_list* directorios, char* nombre, int padre) {
+	int index = obtenerUltimoIndexDirectorios();
+	if (index == -1) {
+		printf("No se pueden crear mas de %d directorios\n", DIR_CANT_MAX);
+		return -1;
+	}
+
+	t_directorio* dir = malloc(sizeof *dir);
+	dir->index = index;
+	strcpy(dir->nombre, nombre);
+	dir->padre = padre;
+
+	char* map = mapearArchivo(FILE_DIRECTORIO);
+
+	memcpy(map + ((dir->index-1)*sizeof(t_directorio)), dir, sizeof(t_directorio));
+
+	list_add(directorios, (void*)dir);
+
+	printf("se creo el directorio %s con padre %d e indice %d\n", dir->nombre,dir->padre, dir->index);
+
+	return 0;
+}
+
+void formatearDirectorios() {
+
+	crearArchivo(FILE_DIRECTORIO, DIR_CANT_MAX * (sizeof(t_directorio)));
+
+	char* map = mapearArchivo(FILE_DIRECTORIO);
+	t_directorio* dir = NULL;
+	dir = malloc(sizeof(t_directorio));
+	dir->index = 0;
+	dir->nombre = NULL;
+	dir->padre = -1;
+
+	int i;
+	for (i = 0; i < DIR_CANT_MAX; i++) {
+		memcpy(map + i * sizeof(t_directorio), dir, sizeof(t_directorio));
+	}
+
+	free(dir);
+
+	desmapearArchivo(map, FILE_DIRECTORIO);
+
+}
+
+bool existeDirectorio(char* nombre, int padre) {
+	return buscarDirectorioPorNombre(filesystem.directorios, nombre, padre) != NULL;
+}
+
+int buscarIdDirectorioPorNombre(char* directorio){
+	return buscarDirectorioPorNombre(filesystem.directorios, directorio, 0)->index;
+}
+/* FIN FUNCIONES DE DIRECTORIOS */

@@ -140,6 +140,21 @@ void mostrarInfoCompletaArchivo(t_archivo* archivo);
 void mostrarBloquesArchivo(t_list* bloques_de_datos);
 void printInfoArchivo(t_archivo_info* info);
 
+/* FUNCIONES DIRECTORIOS */
+
+void printDirectorio(t_directorio* directorio);
+int obtenerUltimoIndexDirectorios() ;
+int crearDir(t_list* directorios, char* nombre, int padre);
+void formatearDirectorios();
+t_directorio* buscarDirectorioPorId(t_list* directorios, int id);
+t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre, int padre);
+int renombrarDirectorio(t_list* directorios, int id, char* nuevo_nombre);
+int eliminarDirectorioPorId(t_list* directorios, int id);
+int eliminarDirectorioPorNombre(char* nombre, int padre);
+void destruirDirectorio(t_directorio* directorio);
+int buscarIdDirectorioPorNombre(char* directorio);
+bool existeDirectorio(char* nombre, int padre);
+
 /* FUNCIONES CONSOLA */
 
 void mostrarConsola();
