@@ -51,6 +51,8 @@ void iniciarFilesystemLimpio(){
 
 	crearFilesystem();
 
+	formatearDirectorios();
+
 	crearServer(config.PUERTO);
 
 	pthread_create(&hiloConsola, NULL, (void*)mostrarConsola, NULL);
@@ -328,7 +330,14 @@ void borrarDirectorio(char* directorio){
 	if(directorio == NULL){
 		printf("Falta especificar el directorio a borrar\n");
 	}else{
-		printf("Borrando el directorio: %s \n", directorio);
+		int idDirPadre = buscarIdDirectorioPorNombre(string_duplicate(directorio));
+		char* nombreDir = basename(string_duplicate(directorio));
+		if (existeDirectorio(nombreDir, idDirPadre)) {
+			printf("ID a borrar: %d\n", (buscarDirectorioPorNombreConPadre(filesystem.directorios, nombreDir, idDirPadre))->index);
+			eliminarDirectorioPorId(filesystem.directorios, (buscarDirectorioPorNombreConPadre(filesystem.directorios, nombreDir, idDirPadre))->index);
+			printf("El directorio fue borrado correctamente\n");
+		} else
+			printf("El directorio no existe\n");
 	}
 }
 
@@ -364,14 +373,14 @@ void mostrarContenidoArchivo(char * archivo){
 	}
 }
 
-void crearDirectorio(char* directorio){
-	if(directorio == NULL){
+void crearDirectorio(char* path){
+	if(path == NULL){
 		printf("Falta especificar el directorio a crear\n");
 	}else{
-		char** path_splitteado = string_split(directorio, "/");
-		int idDirPadre = buscarIdDirectorioPorNombre(path_splitteado[0]);
-		if (!existeDirectorio(path_splitteado[1], idDirPadre)) {
-				crearDir(filesystem.directorios, path_splitteado[1], idDirPadre);
+		int idDirPadre = buscarIdDirectorioPorNombre(string_duplicate(path));
+		char* nombreDir = basename(string_duplicate(path));
+		if (!existeDirectorio(nombreDir, idDirPadre)) {
+				crearDir(filesystem.directorios, nombreDir, idDirPadre);
 				printf("El directorio se creo correctamente\n");
 			} else
 				printf("El directorio ya existe\n");
@@ -435,7 +444,8 @@ void mostrarInfoArchivo(char* archivo){
 	if(archivo == NULL){
 		printf("Falta especificar el archivo\n");
 	}else{
-		printf("Mostrando info del archivo: %s \n", archivo);
+		//mostrarInfoCompletaArchivo(archivo);
+		puts("Mostrando info archivo");
 	}
 }
 
@@ -588,7 +598,7 @@ int recibirInfoNodo(int fd){
 	t_nodo* nodo = crearNodo(fd, nombre, string_itoa(puerto), cantBloquesData);
 	list_add(filesystem.nodos, nodo);
 	free(nombre);
-	enviarHeader(fd, FS_HOLA_NODO);
+	//enviarHeader(fd, FS_HOLA_NODO);
 	return 1;
 }
 
@@ -642,7 +652,6 @@ void crearServer(char* puerto){
 	pthread_create( &hiloServer, &tattr, (void*)iniciarServer, (void*)puerto);
 	pthread_attr_destroy(&tattr);
 }
-
 
 int cantBloquesLibresNodo(t_nodo* nodo){
 	int cant = 0;
@@ -809,7 +818,7 @@ t_archivo_info* getInfoArchivo(char* nombre, char* tipo, int dirPadre) {
 	t_archivo_info* info = malloc(sizeof *info);
 	info->disponible = true;
 	info->tipo = tipo;
-	info->nombre = basename(nombre);
+	info->nombre = basename(string_duplicate(nombre));
 	info->tamanio = tamanioArchivo(nombre);
 	info->directorio = dirPadre;
 
@@ -887,7 +896,7 @@ int eliminarDirectorioPorId(t_list* directorios, int id){
 	memcpy(dir, map + ((id-1)*sizeof(t_directorio)), sizeof(t_directorio));
 
 	dir->index = 0;
-	dir->nombre = NULL;
+	memset(dir->nombre, 0, sizeof(dir->nombre));
 	dir->padre = -1;
 
 	memcpy(map + ((id-1)*sizeof(t_directorio)), dir, sizeof(t_directorio));
@@ -898,7 +907,7 @@ int eliminarDirectorioPorId(t_list* directorios, int id){
 	bool _buscar_directorio_por_id(t_directorio* dir){
 		return dir->index == id;
 	}
-	list_remove_and_destroy_by_condition(directorios, (void*)buscarDirectorioPorId, (void*)destruirDirectorio);
+	list_remove_and_destroy_by_condition(directorios, (void*)_buscar_directorio_por_id, (void*)destruirDirectorio);
 
 
 	return 0;
@@ -926,7 +935,14 @@ int renombrarDirectorio(t_list* directorios, int id, char* nuevoNombre){
 	return 0;
 }
 
-t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre, int padre){
+t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre){
+	bool _dir_buscar_por_nombre(t_directorio* dir){
+		return string_equals_ignore_case(dir->nombre, nombre);
+	}
+	return list_find(directorios, (void*)_dir_buscar_por_nombre);
+}
+
+t_directorio* buscarDirectorioPorNombreConPadre(t_list* directorios, char* nombre, int padre){
 	bool _dir_buscar_por_nombre(t_directorio* dir){
 		return string_equals_ignore_case(dir->nombre, nombre) && dir->padre == padre;
 	}
@@ -941,7 +957,6 @@ t_directorio* buscarDirectorioPorId(t_list* directorios, int id){
 }
 
 int obtenerUltimoIndexDirectorios() {
-
 
 	char* map = mapearArchivo(FILE_DIRECTORIO);
 	int index_new = -1;
@@ -959,7 +974,6 @@ int obtenerUltimoIndexDirectorios() {
 	}
 	free(dir);
 	desmapearArchivo(map, FILE_DIRECTORIO);
-
 	return index_new;
 }
 
@@ -998,7 +1012,7 @@ void formatearDirectorios() {
 	t_directorio* dir = NULL;
 	dir = malloc(sizeof(t_directorio));
 	dir->index = 0;
-	dir->nombre = NULL;
+	memset(dir->nombre, 0 , 255);
 	dir->padre = -1;
 
 	int i;
@@ -1013,10 +1027,16 @@ void formatearDirectorios() {
 }
 
 bool existeDirectorio(char* nombre, int padre) {
-	return buscarDirectorioPorNombre(filesystem.directorios, nombre, padre) != NULL;
+	return buscarDirectorioPorNombreConPadre(filesystem.directorios, nombre, padre) != NULL;
 }
 
 int buscarIdDirectorioPorNombre(char* directorio){
-	return buscarDirectorioPorNombre(filesystem.directorios, directorio, 0)->index;
+	if(string_equals_ignore_case(dirname(string_duplicate(directorio)), "/")){
+		return 0;
+	}else{
+
+	return buscarDirectorioPorNombre(filesystem.directorios, basename(dirname(string_duplicate(directorio))))->index;
+	}
 }
+
 /* FIN FUNCIONES DE DIRECTORIOS */

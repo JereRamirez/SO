@@ -30,7 +30,8 @@
 
 #define DIR_CANT_MAX 100
 
-char FILE_DIRECTORIO[100];
+#define FILE_DIRECTORIO "/home/utnso/projects/tp-2017-2c-NUVUT/FileSystem/metadata/directorios.bin"
+//char FILE_DIRECTORIO[100];
 
 t_log* logger;
 
@@ -60,7 +61,7 @@ t_filesystem filesystem;
 
 typedef struct {
 	int index;
-	char* nombre;
+	char nombre[255];
 	int padre;
 } t_directorio;
 
@@ -147,7 +148,8 @@ int obtenerUltimoIndexDirectorios() ;
 int crearDir(t_list* directorios, char* nombre, int padre);
 void formatearDirectorios();
 t_directorio* buscarDirectorioPorId(t_list* directorios, int id);
-t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre, int padre);
+t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre);
+t_directorio* buscarDirectorioPorNombreConPadre(t_list* directorios, char* nombre, int padre);
 int renombrarDirectorio(t_list* directorios, int id, char* nuevo_nombre);
 int eliminarDirectorioPorId(t_list* directorios, int id);
 int eliminarDirectorioPorNombre(char* nombre, int padre);
@@ -195,6 +197,5 @@ int cantBloquesLibresNodo(t_nodo* nodo);
 int copiarArchivoLocalAlFs(char* nombre, char* tipo, int dirPadre);
 void marcarBloqueComoUsado(char* nombre, int numeroBloque);
 int guardarBloque(char* data, size_t tamanio, t_archivo_bloque* ab);
-
 
 #endif /* FUNCIONESFILESYSTEM_H_ */
