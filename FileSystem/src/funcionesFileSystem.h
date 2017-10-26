@@ -132,6 +132,7 @@ void iniciarServer(void* arg);
 
 /* FUNCIONES DE ARCHIVOS */
 
+bool existeArchivoEnFS(char* nombre, int dir_id);
 t_archivo_info* getInfoArchivo(char* nombre, char* tipo, int dirPadre);
 t_archivo_bloque* crearBloqueArchivo(int numero, int tamanio);
 t_archivo_nodo_bloque* crearArchivoNodoBloque();
@@ -140,6 +141,9 @@ t_archivo_bloque* buscarBloqueArchivo(t_archivo* archivo, int numeroBloque);
 void mostrarInfoCompletaArchivo(t_archivo* archivo);
 void mostrarBloquesArchivo(t_list* bloques_de_datos);
 void printInfoArchivo(t_archivo_info* info);
+t_archivo* buscarArchivoPorNombre(t_list* archivos, char* nombre, int dirId);
+t_archivo* buscarArchivoPorNombreAbsoluto(char* path_abs);
+void renombrarArchivo(char* nombreViejo, char* nombreNuevo);
 
 /* FUNCIONES DIRECTORIOS */
 
@@ -148,31 +152,29 @@ int obtenerUltimoIndexDirectorios() ;
 int crearDir(t_list* directorios, char* nombre, int padre);
 void formatearDirectorios();
 t_directorio* buscarDirectorioPorId(t_list* directorios, int id);
-t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre);
-t_directorio* buscarDirectorioPorNombreConPadre(t_list* directorios, char* nombre, int padre);
+t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre, int padre);
 int renombrarDirectorio(t_list* directorios, int id, char* nuevo_nombre);
 int eliminarDirectorioPorId(t_list* directorios, int id);
-int eliminarDirectorioPorNombre(char* nombre, int padre);
 void destruirDirectorio(t_directorio* directorio);
-int buscarIdDirectorioPorNombre(char* directorio);
 bool existeDirectorio(char* nombre, int padre);
+int dirGetIndex(char* path);
 
 /* FUNCIONES CONSOLA */
 
-void mostrarConsola();
+void mostrarConsola(); //DONE
 void borrarArchivo(char* archivo);
-void borrarDirectorio(char* directorio);
+void borrarDirectorio(char* directorio); //DONE
 void borrarBloque(char* archivo, char* bloque, char* copia);
 void renombrar(char* nombreViejo, char* nombreNuevo);
 void mover(char* ubicacionVieja, char* ubicacionNueva);
 void mostrarContenidoArchivo(char * archivo);
-void crearDirectorio(char* directorio);
-void copiarFrom(char* origen, char* destino, char* tipo);
+void crearDirectorio(char* directorio); //DONE
+void copiarFrom(char* origen, char* destino, char* tipo); //DONE
 void copiarTo(char* origen, char* destino);
 void copiarBloqueANodo(char* archivo, char* bloque, char* nodo);
 void mostrarMD5(char* archivo);
 void mostrarArchivosDelDirectorio(char* directorio);
-void mostrarInfoArchivo(char* archivo);
+void mostrarInfoArchivo(char* archivo); //DONE
 
 /* Otras funciones */
 

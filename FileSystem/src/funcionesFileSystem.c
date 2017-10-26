@@ -330,11 +330,11 @@ void borrarDirectorio(char* directorio){
 	if(directorio == NULL){
 		printf("Falta especificar el directorio a borrar\n");
 	}else{
-		int idDirPadre = buscarIdDirectorioPorNombre(string_duplicate(directorio));
+		int idDirPadre = dirGetIndex(dirname(string_duplicate(directorio)));
 		char* nombreDir = basename(string_duplicate(directorio));
 		if (existeDirectorio(nombreDir, idDirPadre)) {
-			printf("ID a borrar: %d\n", (buscarDirectorioPorNombreConPadre(filesystem.directorios, nombreDir, idDirPadre))->index);
-			eliminarDirectorioPorId(filesystem.directorios, (buscarDirectorioPorNombreConPadre(filesystem.directorios, nombreDir, idDirPadre))->index);
+			printf("ID a borrar: %d\n", dirGetIndex(directorio));
+			eliminarDirectorioPorId(filesystem.directorios, dirGetIndex(directorio));
 			printf("El directorio fue borrado correctamente\n");
 		} else
 			printf("El directorio no existe\n");
@@ -353,7 +353,15 @@ void renombrar(char* nombreViejo, char* nombreNuevo){
 	if(nombreViejo == NULL || nombreNuevo == NULL){
 		printf("Falta especificar nombre actual o nombre deseado\n");
 	}else{
-		printf("Renombrando Archivo/Directorio con nombre: %s a: %s \n", nombreViejo, nombreNuevo);
+		char* nombre = basename(string_duplicate(nombreViejo));
+		int dirId = dirGetIndex(dirname(string_duplicate(nombreViejo)));
+		if(string_contains(nombre, ".") && existeArchivoEnFS(nombre, dirId)){
+			renombrarArchivo(nombreViejo, nombreNuevo);
+		}else if(existeDirectorio(nombre, dirId)){
+			renombrarDirectorio(filesystem.directorios, dirGetIndex(nombreViejo), nombreNuevo);
+		}else{
+			puts("No se pudo renombrar el archivo o directorio");
+		}
 	}
 }
 
@@ -377,7 +385,7 @@ void crearDirectorio(char* path){
 	if(path == NULL){
 		printf("Falta especificar el directorio a crear\n");
 	}else{
-		int idDirPadre = buscarIdDirectorioPorNombre(string_duplicate(path));
+		int idDirPadre = dirGetIndex(dirname(string_duplicate(path)));
 		char* nombreDir = basename(string_duplicate(path));
 		if (!existeDirectorio(nombreDir, idDirPadre)) {
 				crearDir(filesystem.directorios, nombreDir, idDirPadre);
@@ -440,12 +448,13 @@ void mostrarArchivosDelDirectorio(char* directorio){
 	}
 }
 
-void mostrarInfoArchivo(char* archivo){
-	if(archivo == NULL){
+void mostrarInfoArchivo(char* pathArchivo){
+	if(pathArchivo == NULL){
 		printf("Falta especificar el archivo\n");
 	}else{
-		//mostrarInfoCompletaArchivo(archivo);
-		puts("Mostrando info archivo");
+		t_archivo* archivo = NULL;
+		archivo = buscarArchivoPorNombreAbsoluto(pathArchivo);
+		mostrarInfoCompletaArchivo(archivo);
 	}
 }
 
@@ -814,6 +823,11 @@ int guardarBloque(char* data, size_t tamanio, t_archivo_bloque* ab){
 
 /* INICIO FUNCIONES DE ARCHIVOS */
 
+bool existeArchivoEnFS(char* nombre, int dir_id) {
+
+	return buscarArchivoPorNombre(filesystem.archivos, nombre, dir_id) != NULL;
+}
+
 t_archivo_info* getInfoArchivo(char* nombre, char* tipo, int dirPadre) {
 	t_archivo_info* info = malloc(sizeof *info);
 	info->disponible = true;
@@ -877,7 +891,41 @@ void printInfoArchivo(t_archivo_info* info){
 
 	printf("Directorio padre: %d\n", info->directorio);
 	printf("Disponible: %d\n", info->disponible);
-	printf("Cantdidad de bloques: %d\n", info->cantBloques);
+	printf("Cantidad de bloques: %d\n", info->cantBloques);
+}
+
+t_archivo* buscarArchivoPorNombre(t_list* archivos, char* nombre, int dirId) {
+	t_archivo* archivo = NULL;
+	bool _buscar_archivo_por_nombre(t_archivo* archivo) {
+		return string_equals_ignore_case(archivo->info->nombre, nombre)
+				&& archivo->info->directorio == dirId;
+	}
+	archivo = list_find(archivos, (void*) _buscar_archivo_por_nombre);
+	return archivo;
+}
+
+t_archivo* buscarArchivoPorNombreAbsoluto(char* path_abs){
+	char* dir = malloc(strlen(path_abs)+1);
+	char* name = malloc(strlen(path_abs)+1);
+
+	strcpy(dir, path_abs);
+	strcpy(name, path_abs);
+
+	dir = dirname(dir);
+
+	name = basename(name);
+
+	int dir_id = dirGetIndex(dir);
+
+	free(dir);dir=NULL;
+
+	t_archivo* archivo = buscarArchivoPorNombre(filesystem.archivos, name, dir_id);
+
+	return archivo;
+}
+
+void renombrarArchivo(char* nombreViejo, char* nombreNuevo){
+	puts("Archivo renombrado exitosamente");;
 }
 
 /* FIN FUNCIONES DE ARCHIVOS */
@@ -886,6 +934,7 @@ void printInfoArchivo(t_archivo_info* info){
 
 void destruirDirectorio(t_directorio* directorio){
 	free(directorio);
+	directorio = NULL;
 }
 
 int eliminarDirectorioPorId(t_list* directorios, int id){
@@ -932,17 +981,12 @@ int renombrarDirectorio(t_list* directorios, int id, char* nuevoNombre){
 	dir = buscarDirectorioPorId(directorios, id);
 	strcpy(dir->nombre, nuevoNombre);
 
+	puts("Directorio renombrado exitosamente");
+
 	return 0;
 }
 
-t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre){
-	bool _dir_buscar_por_nombre(t_directorio* dir){
-		return string_equals_ignore_case(dir->nombre, nombre);
-	}
-	return list_find(directorios, (void*)_dir_buscar_por_nombre);
-}
-
-t_directorio* buscarDirectorioPorNombreConPadre(t_list* directorios, char* nombre, int padre){
+t_directorio* buscarDirectorioPorNombre(t_list* directorios, char* nombre, int padre){
 	bool _dir_buscar_por_nombre(t_directorio* dir){
 		return string_equals_ignore_case(dir->nombre, nombre) && dir->padre == padre;
 	}
@@ -1027,16 +1071,51 @@ void formatearDirectorios() {
 }
 
 bool existeDirectorio(char* nombre, int padre) {
-	return buscarDirectorioPorNombreConPadre(filesystem.directorios, nombre, padre) != NULL;
+	return buscarDirectorioPorNombre(filesystem.directorios, nombre, padre) != NULL;
 }
 
-int buscarIdDirectorioPorNombre(char* directorio){
-	if(string_equals_ignore_case(dirname(string_duplicate(directorio)), "/")){
+int dirGetIndex(char* path){
+	//si solo pasa el / le devuelvo directamente el raiz
+	if(strcmp(path, "/") == 0){
 		return 0;
-	}else{
-
-	return buscarDirectorioPorNombre(filesystem.directorios, basename(dirname(string_duplicate(directorio))))->index;
 	}
-}
+    int padre;
+	//verifico si esta usando / en el primer char, si es asi uso a padre = 0;
+	if(path[0] == '/')
+		padre = 0;
 
+	int rs;
+	char** nombres = string_split(path, "/");
+	int i=0;
+	t_directorio* dir = NULL;
+	while(nombres[i]!=NULL){
+
+		bool _buscar_en_dirs(t_directorio* dir){
+			return string_equals_ignore_case(dir->nombre, nombres[i])  && dir->padre == padre;
+		}
+
+		dir = list_find(filesystem.directorios, (void*)_buscar_en_dirs);
+		if(dir==NULL){
+			rs = -1;
+			break;
+		}else{
+			//asigno el nuevo padre
+			padre = dir->index;
+			rs = dir->index;
+		}
+
+		i++;
+	}
+	//limpio el resultado del split
+	i = 0;
+	while (nombres[i] != NULL) {
+		free(nombres[i]);
+		nombres[i] = NULL;
+		i++;
+	}
+	free(nombres);
+	nombres = NULL;
+
+	return rs;
+}
 /* FIN FUNCIONES DE DIRECTORIOS */
