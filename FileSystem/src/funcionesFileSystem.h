@@ -130,6 +130,23 @@ void cargarBackUp();
 void crearServer(char* puerto);
 void iniciarServer(void* arg);
 
+/* FUNCIONES CONSOLA */
+
+void mostrarConsola(); //DONE
+void borrarArchivo(char* archivo);
+void borrarDirectorio(char* directorio); //DONE
+void borrarBloque(char* archivo, char* bloque, char* copia);
+void renombrar(char* nombreViejo, char* nombreNuevo); //rename directory DONE / TOD0: rename file
+void mover(char* ubicacionVieja, char* ubicacionNueva);
+void mostrarContenidoArchivo(char * archivo);
+void crearDirectorio(char* directorio); //DONE
+void copiarFrom(char* origen, char* destino, char* tipo); //DONE
+void copiarTo(char* origen, char* destino);
+void copiarBloqueANodo(char* archivo, char* bloque, char* nodo);
+void mostrarMD5(char* archivo);
+void mostrarArchivosDelDirectorio(char* directorio); //DONE
+void mostrarInfoArchivo(char* archivo); //DONE
+
 /* FUNCIONES DE ARCHIVOS */
 
 bool existeArchivoEnFS(char* nombre, int dir_id);
@@ -159,23 +176,6 @@ void destruirDirectorio(t_directorio* directorio);
 bool existeDirectorio(char* nombre, int padre);
 int dirGetIndex(char* path);
 
-/* FUNCIONES CONSOLA */
-
-void mostrarConsola(); //DONE
-void borrarArchivo(char* archivo);
-void borrarDirectorio(char* directorio); //DONE
-void borrarBloque(char* archivo, char* bloque, char* copia);
-void renombrar(char* nombreViejo, char* nombreNuevo);
-void mover(char* ubicacionVieja, char* ubicacionNueva);
-void mostrarContenidoArchivo(char * archivo);
-void crearDirectorio(char* directorio); //DONE
-void copiarFrom(char* origen, char* destino, char* tipo); //DONE
-void copiarTo(char* origen, char* destino);
-void copiarBloqueANodo(char* archivo, char* bloque, char* nodo);
-void mostrarMD5(char* archivo);
-void mostrarArchivosDelDirectorio(char* directorio);
-void mostrarInfoArchivo(char* archivo); //DONE
-
 /* Otras funciones */
 
 void informarErrorYLiberarEstructuras(t_config *config_tmp, char *toLog);
@@ -183,7 +183,7 @@ t_list* partirArchivoEnBloques(char* archivo);
 int cantBloquesNecesarios(char* archivo);
 int lenHastaEnter(char* strings);
 int procesarMensaje(int fd);
-t_nodo* crearNodo(int fd, char* nombre, char* puerto, u_int32_t tamanioData);
+t_nodo* crearNodo(int fd, char* nombre, char* ipNodo, char* puerto, u_int32_t tamanioData);
 int recibirInfoNodo(int fd);
 t_bitmap* crearBitmap(u_int32_t tamanio);
 void printInfoNodo(t_nodo* nodo);

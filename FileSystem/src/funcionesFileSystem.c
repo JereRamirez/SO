@@ -388,10 +388,10 @@ void crearDirectorio(char* path){
 		int idDirPadre = dirGetIndex(dirname(string_duplicate(path)));
 		char* nombreDir = basename(string_duplicate(path));
 		if (!existeDirectorio(nombreDir, idDirPadre)) {
-				crearDir(filesystem.directorios, nombreDir, idDirPadre);
-				printf("El directorio se creo correctamente\n");
-			} else
-				printf("El directorio ya existe\n");
+			crearDir(filesystem.directorios, nombreDir, idDirPadre);
+			printf("El directorio se creo correctamente\n");
+		} else
+			printf("El directorio ya existe\n");
 	}
 }
 
@@ -402,14 +402,17 @@ void copiarFrom(char* archivoLocal, char* dirFs, char* tipo) {
 
 		if (existeArchivo(archivoLocal)) {
 
-			//char* nombre = basename(archivoLocal); Lo voy a usar despues para verificar que no exista ya en el fs
+			char* nombre = basename(string_duplicate(archivoLocal));
+			int dirId = dirGetIndex(dirFs);
 
-			if(copiarArchivoLocalAlFs(archivoLocal, tipo, atoi(dirFs)) < 0){
-              puts("No se pudo copiar el archivo local a YAMAfs");
-			}else{
-				puts("El archivo local fue copiado exitosamente");
+			if(!existeArchivoEnFS(nombre, dirId)){
+
+				if(copiarArchivoLocalAlFs(archivoLocal, tipo, dirId) < 0){
+					puts("No se pudo copiar el archivo local a YAMAfs");
+				}else{
+					puts("El archivo local fue copiado exitosamente");
+				}
 			}
-
 		} else{
 			printf("el archivo no existe: %s\n", archivoLocal);
 		}
@@ -444,7 +447,19 @@ void mostrarArchivosDelDirectorio(char* directorio){
 	if(directorio == NULL){
 		printf("Falta especificar el directorio\n");
 	}else{
-		printf("Listando los archivos de: %s \n", directorio);
+		char* nombre = basename(string_duplicate(directorio));
+		int idDirPadre = dirGetIndex(dirname(string_duplicate(directorio)));
+		if(existeDirectorio(nombre, idDirPadre)){
+			printf("Listando los archivos de: %s \n", directorio);
+			int idDir = dirGetIndex(directorio);
+			void _print_archivo_dir(t_archivo* archivo){
+				if(archivo->info->directorio == idDir){
+					printf("%s\n", archivo->info->nombre);
+				}
+			}
+			list_iterate(filesystem.archivos, (void*)_print_archivo_dir);
+		}
+		puts("El directorio no existe");
 	}
 }
 
@@ -587,7 +602,7 @@ int procesarMensaje(int fd){
 	switch(header){
 	case HANDSHAKE_NODO:
 		if(recibirInfoNodo(fd) < 0){
-        return -1;
+			return -1;
 		};
 		break;
 	}
@@ -604,10 +619,18 @@ int recibirInfoNodo(int fd){
 	if(puerto <= 0 || nombre == NULL || cantBloquesData <= 0){
 		return -1;
 	}
-	t_nodo* nodo = crearNodo(fd, nombre, string_itoa(puerto), cantBloquesData);
+	struct sockaddr_in addr;
+	socklen_t addr_size = sizeof(struct sockaddr_in);
+	int res = getpeername(fd, (struct sockaddr *)&addr, &addr_size);
+	if(res == -1){
+		puts("Error al obtener IP del Nodo");
+		return -1;
+	}
+	char ipNodo[20];
+	strcpy(ipNodo, inet_ntoa(addr.sin_addr));
+	t_nodo* nodo = crearNodo(fd, nombre, ipNodo, string_itoa(puerto), cantBloquesData);
 	list_add(filesystem.nodos, nodo);
 	free(nombre);
-	//enviarHeader(fd, FS_HOLA_NODO);
 	return 1;
 }
 
@@ -617,11 +640,11 @@ void crearFilesystem(){
 	filesystem.archivos = list_create();
 }
 
-t_nodo* crearNodo(int fd, char* nombre, char* puerto, u_int32_t tamanioData){
+t_nodo* crearNodo(int fd, char* nombre, char* ipNodo, char* puerto, u_int32_t tamanioData){
 	t_nodo* nodo = malloc(sizeof(t_nodo));
 	nodo->info = malloc(sizeof(t_nodo_info));
 	nodo->info->nombre = string_duplicate(nombre);
-	nodo->info->ip = NULL;
+	strcpy(nodo->info->ip, ipNodo);
 	nodo->info->puerto = string_duplicate(puerto);
 	nodo->fd = fd;
 	nodo->conectado = true;
@@ -637,7 +660,7 @@ void printInfoNodo(t_nodo* nodo){
 	printf("Puerto:%s\n", nodo->info->puerto);
 	printf("Socket:%d\n", nodo->fd);
 	if(nodo->conectado){
-	printf("Estado: conectado\n");
+		printf("Estado: conectado\n");
 	}else{
 		printf("Estado: desconectado\n");
 	}
@@ -646,11 +669,11 @@ void printInfoNodo(t_nodo* nodo){
 
 t_bitmap* crearBitmap(u_int32_t tamanio) {
 	t_bitmap* bitmap = malloc(sizeof(t_bitmap) * tamanio);
-		int i;
-		for(i=0; i < tamanio; i++){
-			bitmap[i].ocupado = 0;
-		}
-		return bitmap;
+	int i;
+	for(i=0; i < tamanio; i++){
+		bitmap[i].ocupado = 0;
+	}
+	return bitmap;
 }
 
 void crearServer(char* puerto){
@@ -710,7 +733,7 @@ t_list* distribuirBloque(){
 	list_add(bloqueCopias, anb1);
 	list_add(bloqueCopias, anb2);
 
-    return bloqueCopias;
+	return bloqueCopias;
 }
 
 t_archivo_nodo_bloque* crearArchivoNodoBloque(){
@@ -723,14 +746,14 @@ int getBloqueLibreNodo(t_nodo* nodo){
 	int pos;
 	int i = 0;
 	bool encontrado = false;
-    while(!encontrado && (i < nodo->cantBloques)){
-    	if(nodo->bloques[i].ocupado == 0){
-    		encontrado = true;
-    		pos = i;
-    	}else{
-    		i++;
-    	}
-    }
+	while(!encontrado && (i < nodo->cantBloques)){
+		if(nodo->bloques[i].ocupado == 0){
+			encontrado = true;
+			pos = i;
+		}else{
+			i++;
+		}
+	}
 	return pos;
 }
 
@@ -749,16 +772,16 @@ t_nodo* getNodoParaGuardarBloqueDistintoANodo(t_list* nodos, t_nodo* nodo0){
 	bool encontrado = false;
 	int i = 0;
 	t_nodo* nodo1 = NULL;
-    while(!encontrado && (i < list_size(nodos))){
-    	t_nodo* aux = list_get(nodos, i);
-    	if(aux->info->nombre != nodo0->info->nombre){
-    		nodo1 = aux;
-    		encontrado = true;
-    	}else{
-    		i++;
-    	}
-    }
-    return nodo1;
+	while(!encontrado && (i < list_size(nodos))){
+		t_nodo* aux = list_get(nodos, i);
+		if(aux->info->nombre != nodo0->info->nombre){
+			nodo1 = aux;
+			encontrado = true;
+		}else{
+			i++;
+		}
+	}
+	return nodo1;
 }
 
 int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque){
@@ -804,9 +827,9 @@ int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque){
 
 t_nodo* buscarNodoPorNombre(char* nombre){
 	bool _buscar_nodo_por_nombre(t_nodo* nodo) {
-			return nodo->info->nombre == nombre;
-		}
-		return list_find(filesystem.nodos, (void*) _buscar_nodo_por_nombre);
+		return nodo->info->nombre == nombre;
+	}
+	return list_find(filesystem.nodos, (void*) _buscar_nodo_por_nombre);
 }
 
 void marcarBloqueComoUsado(char* nombre, int numeroBloque){
@@ -1079,7 +1102,7 @@ int dirGetIndex(char* path){
 	if(strcmp(path, "/") == 0){
 		return 0;
 	}
-    int padre;
+	int padre;
 	//verifico si esta usando / en el primer char, si es asi uso a padre = 0;
 	if(path[0] == '/')
 		padre = 0;
