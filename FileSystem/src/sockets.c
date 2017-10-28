@@ -94,6 +94,20 @@ int aceptarConexion(int socketServidor) {
 	return socketCliente;
 }
 
+/* Devuelve la IP de un socket */
+
+char* getIpSocket(int fd){
+	struct sockaddr_in addr;
+	socklen_t addr_size = sizeof(struct sockaddr_in);
+	int res = getpeername(fd, (struct sockaddr *)&addr, &addr_size);
+	if(res == -1){
+		return NULL;
+	}
+	char ipNodo[20];
+	strcpy(ipNodo, inet_ntoa(addr.sin_addr));
+	return strdup(ipNodo);
+}
+
 /* Cierra un socket */
 
 void cerrarSocket(int socket){

@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <commons/string.h>
@@ -26,6 +27,7 @@
 int crearSocketServidor(char* puerto);
 int crearSocketCliente(char* ip, char* puerto);
 int aceptarConexion(int socketServidor);
+char* getIpSocket(int fd);
 void cerrarSocket(int socket);
 void multiplexar(char * puerto, int (*procesar_mensaje)(int));
 

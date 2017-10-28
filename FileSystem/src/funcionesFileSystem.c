@@ -126,7 +126,7 @@ size_t tamanioArchivo(char* archivo) {
 }
 
 
-// Borra todo el contenido de un archivo
+// Borra tod0 el contenido de un archivo
 
 void limpiarArchivo(char *path) {
 
@@ -135,7 +135,7 @@ void limpiarArchivo(char *path) {
 	fclose(f);
 }
 
-// Lee un archivo y retorna TODO su contenido
+// Lee un archivo y retorna TOD0 su contenido
 
 char *leerArchivoCompleto(char *path) {
 
@@ -239,12 +239,24 @@ float bytesToMegabytes(size_t bytes){
 	return bytes / ((1024*1024) + 0.0);
 }
 
+void destroySplit(char** split){
+	int i = 0;
+	while (split[i] != NULL) {
+		free(split[i]);
+		split[i] = NULL;
+		i++;
+	}
+	free(split);
+	split = NULL;
+}
+
 /* FIN FUNCIONES AUXILIARES */
 
 /* INICIO FUNCIONES CONSOLA */
 
 void mostrarConsola() {
 	char * linea;
+	char** lineas;
 	while(1) {
 		linea = readline(">");
 
@@ -260,7 +272,7 @@ void mostrarConsola() {
 			puts("Formateando FS \n");
 		}
 
-		char** lineas = string_split(linea, " ");
+		lineas = string_split(linea, " ");
 
 		if(!strncmp(linea, "rm", 2)) {
 
@@ -314,7 +326,7 @@ void mostrarConsola() {
 		}
 
 		free(linea);
-		free(lineas);
+		destroySplit(lineas);
 	}
 }
 
@@ -332,12 +344,19 @@ void borrarDirectorio(char* directorio){
 	}else{
 		int idDirPadre = dirGetIndex(dirname(string_duplicate(directorio)));
 		char* nombreDir = basename(string_duplicate(directorio));
+		int idDir = dirGetIndex(directorio);
 		if (existeDirectorio(nombreDir, idDirPadre)) {
-			printf("ID a borrar: %d\n", dirGetIndex(directorio));
-			eliminarDirectorioPorId(filesystem.directorios, dirGetIndex(directorio));
-			printf("El directorio fue borrado correctamente\n");
-		} else
+			if(!tieneArchivosDir(idDir)){
+				printf("ID a borrar: %d\n", idDir);
+				eliminarDirectorioPorId(filesystem.directorios, idDir);
+				printf("El directorio fue borrado correctamente\n");
+			}else{
+				puts("No se puede borrar el directorio ya que contiene archivos");
+			}
+
+		}else{
 			printf("El directorio no existe\n");
+		}
 	}
 }
 
@@ -440,6 +459,7 @@ void mostrarMD5(char* archivo){
 		printf("Falta especificar el archivo\n");
 	}else{
 		printf("Mostrando MD5 de: %s \n", archivo);
+		system("md5sum /home/utnso/prueba.txt");
 	}
 }
 
@@ -475,8 +495,6 @@ void mostrarInfoArchivo(char* pathArchivo){
 
 /* FIN FUNCIONES CONSOLA */
 
-/* FUNCIONES PRINCIPALES */
-
 int copiarArchivoLocalAlFs(char* nombre, char* tipo, int dirPadre) {
 
 	t_list* bloques_de_datos = NULL;
@@ -494,17 +512,17 @@ int copiarArchivoLocalAlFs(char* nombre, char* tipo, int dirPadre) {
 	archivo->bloquesDeDatos = bloques_de_datos;
 
 	t_archivo_info* info = NULL;
+	string_to_upper(tipo);
 	info = getInfoArchivo(nombre, tipo, dirPadre);
 	info->cantBloques = list_size(bloques_de_datos);
 	archivo->info = info;
+
+	crearArchivoMetadata(archivo);
 
 	list_add(filesystem.archivos, archivo);
 	desmapearArchivo(archivomapeado, nombre);
 	return 1;
 }
-
-
-/* FIN FUNCIONES PRINCIPALES */
 
 int cantBloquesNecesarios(char* archivo) {
 	int cant = 0;
@@ -586,13 +604,11 @@ t_list* partirArchivoEnBloques(char* archivo) {
 
 }
 
-
 void iniciarServer(void* arg){
 
 	multiplexar((char*)arg,(void*)procesarMensaje);
 
 }
-
 
 int procesarMensaje(int fd){
 	u_int32_t header = recibirHeader(fd);
@@ -609,7 +625,6 @@ int procesarMensaje(int fd){
 	return 1;
 }
 
-
 int recibirInfoNodo(int fd){
 
 	u_int32_t cantBloquesData = recibirInt(fd);
@@ -619,15 +634,11 @@ int recibirInfoNodo(int fd){
 	if(puerto <= 0 || nombre == NULL || cantBloquesData <= 0){
 		return -1;
 	}
-	struct sockaddr_in addr;
-	socklen_t addr_size = sizeof(struct sockaddr_in);
-	int res = getpeername(fd, (struct sockaddr *)&addr, &addr_size);
-	if(res == -1){
+	char* ipNodo = getIpSocket(fd);
+	if(ipNodo == NULL){
 		puts("Error al obtener IP del Nodo");
 		return -1;
 	}
-	char ipNodo[20];
-	strcpy(ipNodo, inet_ntoa(addr.sin_addr));
 	t_nodo* nodo = crearNodo(fd, nombre, ipNodo, string_itoa(puerto), cantBloquesData);
 	list_add(filesystem.nodos, nodo);
 	free(nombre);
@@ -948,7 +959,86 @@ t_archivo* buscarArchivoPorNombreAbsoluto(char* path_abs){
 }
 
 void renombrarArchivo(char* nombreViejo, char* nombreNuevo){
-	puts("Archivo renombrado exitosamente");;
+	t_archivo* archivo = buscarArchivoPorNombreAbsoluto(nombreViejo);
+	char* pathMetadataOld = getPathMetadataArchivo(archivo);
+	strcpy(archivo->info->nombre, nombreNuevo);
+	char* pathMetadataNew = getPathMetadataArchivo(archivo);
+	int rs = rename(pathMetadataOld, pathMetadataNew);
+	if(rs == 0){
+		puts("Archivo renombrado exitosamente");
+	}else{
+		puts("No se pudo renombrar el archivo");
+	}
+	free(pathMetadataOld);
+	free(pathMetadataNew);
+}
+
+void crearArchivoMetadata(t_archivo* archivo){
+	char* path = string_new();
+	string_append(&path, DIRECTORIO_ARCHIVOS);
+	string_append(&path, string_itoa(archivo->info->directorio));
+	DIR* dir = opendir(path);
+	if (dir)
+	{
+		/* Directorio existe */
+
+		char** nombre = string_split(archivo->info->nombre, ".");
+		string_append_with_format(&path, "/%s.csv", nombre[0]);
+        persistirArchivo(archivo, path);
+    	destroySplit(nombre);
+		closedir(dir);
+	}
+	else if (ENOENT == errno)
+	{
+		/* Directorio no existe */
+
+		mkdir(path, 0777);
+		char** nombre = string_split(archivo->info->nombre, ".");
+		string_append_with_format(&path, "/%s.csv", nombre[0]);
+		persistirArchivo(archivo, path);
+		destroySplit(nombre);
+	}
+
+	free(path);
+}
+
+void persistirArchivo(t_archivo* archivo, char* path){
+	limpiarArchivo(path);
+	FILE* file = txt_open_for_append(path);
+	char* tamanio = string_new();
+	string_append_with_format(&tamanio, "TAMANIO=%s", string_itoa(archivo->info->tamanio));
+	txt_write_in_file(file, tamanio);
+	char* tipo = string_new();
+	string_append_with_format(&tipo, "TIPO=%s", archivo->info->tipo);
+	txt_write_in_file(file, tipo);
+	int i, j;
+	for (i = 0; i < archivo->info->cantBloques; i++){
+		t_archivo_bloque* ab = list_get(archivo->bloquesDeDatos, i);
+		for (j = 0; i < list_size(ab->nodosBloque); i++){
+			char* bloque = string_new();
+			t_archivo_nodo_bloque* anb = list_get(ab->nodosBloque, j);
+			string_append_with_format(&bloque, "BLOQUE%dCOPIA%d=[%s,%d]", i, j, anb->info->nombre, anb->numeroBloque);
+			txt_write_in_file(file, bloque);
+			free(bloque);
+		}
+		char* tamanioBloque = string_new();
+		string_append_with_format(&tamanio, "BLOQUE%dBYTES=%d", i, ab->tamanio);
+		txt_write_in_file(file, tamanioBloque);
+		free(tamanioBloque);
+	}
+	txt_close_file(file);
+	free(tamanio);
+	free(tipo);
+}
+
+char* getPathMetadataArchivo(t_archivo* archivo){
+	char* path = string_new();
+	string_append(&path, DIRECTORIO_ARCHIVOS);
+	string_append(&path, string_itoa(archivo->info->directorio));
+	char** nombre = string_split(archivo->info->nombre, ".");
+	string_append_with_format(&path, "/%s.csv", nombre[0]);
+	destroySplit(nombre);
+	return path;
 }
 
 /* FIN FUNCIONES DE ARCHIVOS */
@@ -1097,6 +1187,13 @@ bool existeDirectorio(char* nombre, int padre) {
 	return buscarDirectorioPorNombre(filesystem.directorios, nombre, padre) != NULL;
 }
 
+bool tieneArchivosDir(int dirId){
+	bool _archivo_esta_en_dir(t_archivo* archivo){
+		return archivo->info->directorio == dirId;
+	}
+	return list_any_satisfy(filesystem.archivos, (void*)_archivo_esta_en_dir);
+}
+
 int dirGetIndex(char* path){
 	//si solo pasa el / le devuelvo directamente el raiz
 	if(strcmp(path, "/") == 0){
@@ -1130,14 +1227,8 @@ int dirGetIndex(char* path){
 		i++;
 	}
 	//limpio el resultado del split
-	i = 0;
-	while (nombres[i] != NULL) {
-		free(nombres[i]);
-		nombres[i] = NULL;
-		i++;
-	}
-	free(nombres);
-	nombres = NULL;
+
+	destroySplit(nombres);
 
 	return rs;
 }

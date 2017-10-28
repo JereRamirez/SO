@@ -12,6 +12,8 @@
 #include <libgen.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <dirent.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <stdbool.h>
@@ -20,6 +22,7 @@
 #include <readline/history.h>
 #include <commons/config.h>
 #include <commons/log.h>
+#include <commons/txt.h>
 
 #define GETBLOQUE 123
 #define SETBLOQUE 321
@@ -30,8 +33,8 @@
 
 #define DIR_CANT_MAX 100
 
-#define FILE_DIRECTORIO "/home/utnso/projects/tp-2017-2c-NUVUT/FileSystem/metadata/directorios.bin"
-//char FILE_DIRECTORIO[100];
+#define FILE_DIRECTORIO "metadata/directorios.bin"
+#define DIRECTORIO_ARCHIVOS "metadata/archivos/"
 
 t_log* logger;
 
@@ -118,6 +121,7 @@ void* mapearArchivo(char* archivo);
 void desmapearArchivo(char* archMapeado, char* archivo);
 float bytes_to_megabytes(size_t bytes);
 float bytesToKilobytes(size_t bytes);
+void destroySplit(char** split);
 
 /* FUNCIONES PRINCIPALES */
 
@@ -136,7 +140,7 @@ void mostrarConsola(); //DONE
 void borrarArchivo(char* archivo);
 void borrarDirectorio(char* directorio); //DONE
 void borrarBloque(char* archivo, char* bloque, char* copia);
-void renombrar(char* nombreViejo, char* nombreNuevo); //rename directory DONE / TOD0: rename file
+void renombrar(char* nombreViejo, char* nombreNuevo); //DONE
 void mover(char* ubicacionVieja, char* ubicacionNueva);
 void mostrarContenidoArchivo(char * archivo);
 void crearDirectorio(char* directorio); //DONE
@@ -161,6 +165,9 @@ void printInfoArchivo(t_archivo_info* info);
 t_archivo* buscarArchivoPorNombre(t_list* archivos, char* nombre, int dirId);
 t_archivo* buscarArchivoPorNombreAbsoluto(char* path_abs);
 void renombrarArchivo(char* nombreViejo, char* nombreNuevo);
+void crearArchivoMetadata(t_archivo* archivo);
+void persistirArchivo(t_archivo* archivo, char* path);
+char* getPathMetadataArchivo(t_archivo* archivo);
 
 /* FUNCIONES DIRECTORIOS */
 
@@ -174,6 +181,7 @@ int renombrarDirectorio(t_list* directorios, int id, char* nuevo_nombre);
 int eliminarDirectorioPorId(t_list* directorios, int id);
 void destruirDirectorio(t_directorio* directorio);
 bool existeDirectorio(char* nombre, int padre);
+bool tieneArchivosDir(int dirId);
 int dirGetIndex(char* path);
 
 /* Otras funciones */
