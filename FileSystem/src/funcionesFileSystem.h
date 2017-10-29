@@ -34,7 +34,9 @@
 #define DIR_CANT_MAX 100
 
 #define FILE_DIRECTORIO "metadata/directorios.bin"
+#define FILE_NODOS "metadata/nodos.bin"
 #define DIRECTORIO_ARCHIVOS "metadata/archivos/"
+#define DIRECTORIO_BITMAPS "metadata/bitmaps/"
 
 t_log* logger;
 
@@ -201,7 +203,10 @@ t_nodo* getNodoParaGuardarBloque(t_list* nodos);
 t_nodo* getNodoParaGuardarBloqueDistintoANodo(t_list* nodos, t_nodo* nodo0);
 int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque);
 t_nodo* buscarNodoPorNombre(char* nombre);
+void persistirNodos();
+void persistirBitmaps();
 int getBloqueLibreNodo(t_nodo* nodo);
+int cantTotalBloquesFs();
 int cantBloquesLibresFs();
 int cantBloquesLibresNodo(t_nodo* nodo);
 int copiarArchivoLocalAlFs(char* nombre, char* tipo, int dirPadre);

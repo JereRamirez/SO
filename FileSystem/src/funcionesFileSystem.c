@@ -521,6 +521,7 @@ int copiarArchivoLocalAlFs(char* nombre, char* tipo, int dirPadre) {
 
 	list_add(filesystem.archivos, archivo);
 	desmapearArchivo(archivomapeado, nombre);
+	persistirNodos();
 	return 1;
 }
 
@@ -707,6 +708,15 @@ int cantBloquesLibresNodo(t_nodo* nodo){
 	return cant;
 }
 
+int cantTotalBloquesFs(){
+	int cant = 0;
+	void sumarBloquesNodos(t_nodo* nodo){
+		cant += nodo->cantBloques;
+	}
+	list_iterate(filesystem.nodos, (void*)sumarBloquesNodos);
+	return cant;
+}
+
 int cantBloquesLibresFs(){
 	int cant = 0;
 	void sumarBloquesLibresNodos(t_nodo* nodo){
@@ -853,6 +863,64 @@ int guardarBloque(char* data, size_t tamanio, t_archivo_bloque* ab){
 	memcpy(bloque, data, tamanio);
 	bloque[tamanio] = '\0';
 	return enviarBloqueANodos(ab, bloque);
+}
+
+void persistirNodos(){
+	limpiarArchivo(FILE_NODOS);
+	FILE* file = txt_open_for_append(FILE_NODOS);
+	char* tamanio = string_new();
+	string_append_with_format(&tamanio, "TAMANIO=%s", cantTotalBloquesFs());
+	txt_write_in_file(file, tamanio);
+	char* libre = string_new();
+	string_append_with_format(&libre, "LIBRE=%d", cantBloquesLibresFs());
+	txt_write_in_file(file, libre);
+	char* nodos = string_new();
+	string_append(&nodos, "NODOS=[");
+	int i;
+	for (i = 0; i < list_size(filesystem.nodos); i++){
+		t_nodo* nodo = list_get(filesystem.nodos, i);
+		string_append_with_format(&nodos, "%s,", nodo->info->nombre);
+	}
+	char* nodosAux = string_substring_until(nodos, string_length(nodos) - 1);
+	string_append(nodosAux, "]");
+	txt_write_in_file(file, nodosAux);
+	for (i = 0; i < list_size(filesystem.nodos); i++){
+		char* nodoTotal = string_new();
+		t_nodo* nodo = list_get(filesystem.nodos, i);
+		string_append_with_format(&nodoTotal, "%sTotal=%d", nodo->info->nombre, nodo->cantBloques);
+		txt_write_in_file(file, nodoTotal);
+		char* nodoLibre = string_new();
+		string_append_with_format(&nodoLibre, "%sLibre=%d", nodo->info->nombre, cantBloquesLibresNodo(nodo));
+		txt_write_in_file(file, nodoLibre);
+		free(nodoTotal);
+		free(nodoLibre);
+	}
+	free(tamanio);
+	free(libre);
+	free(nodos);
+	free(nodosAux);
+	txt_close_file(file);
+	persistirBitmaps();
+}
+
+void persistirBitmaps(){
+	int i, j;
+	for (i = 0; i < list_size(filesystem.nodos); i++){
+		t_nodo* nodo = list_get(filesystem.nodos, i);
+		char* path = string_new();
+		string_append(&path, DIRECTORIO_BITMAPS);
+		string_append_with_format(&path, "%s.dat", nodo->info->nombre);
+		limpiarArchivo(path);
+		FILE* file = txt_open_for_append(path);
+		char* bitmap = string_new();
+		for (j = 0; i < nodo->cantBloques; i++){
+			string_append_with_format(&bitmap, "%s", string_itoa(nodo->bloques[j].ocupado));
+		}
+		txt_write_in_file(file, bitmap);
+		txt_close_file(file);
+		free(path);
+		free(bitmap);
+	}
 }
 
 /* INICIO FUNCIONES DE ARCHIVOS */
