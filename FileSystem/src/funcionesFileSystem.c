@@ -242,12 +242,12 @@ float bytesToMegabytes(size_t bytes){
 void destroySplit(char** split){
 	int i = 0;
 	while (split[i] != NULL) {
-		free(split[i]);
-		split[i] = NULL;
+		freeNull(split[i]);
 		i++;
 	}
-	free(split);
-	split = NULL;
+	//free(split);
+	//split = NULL;
+	freeNull(split);
 }
 
 /* FIN FUNCIONES AUXILIARES */
@@ -325,7 +325,7 @@ void mostrarConsola() {
 			mostrarInfoArchivo(lineas[1]);
 		}
 
-		free(linea);
+		freeNull(linea);
 		destroySplit(lineas);
 	}
 }
@@ -334,7 +334,14 @@ void borrarArchivo(char* archivo){
 	if(archivo == NULL){
 		printf("Falta especificar el archivo a borrar\n");
 	}else{
-		printf("Borrando el archivo: %s \n", archivo);
+		char* nombre = basename(string_duplicate(archivo));
+		int dirId = dirGetIndex(dirname(string_duplicate(archivo)));
+		if(existeArchivoEnFS(nombre, dirId)){
+			borrarArchivoFs(nombre, dirId);
+			puts("Archivo borrado exitosamente");
+		}else{
+			puts("El archivo no existe");
+		}
 	}
 }
 
@@ -357,6 +364,8 @@ void borrarDirectorio(char* directorio){
 		}else{
 			printf("El directorio no existe\n");
 		}
+
+		freeNull(nombreDir);
 	}
 }
 
@@ -381,6 +390,7 @@ void renombrar(char* nombreViejo, char* nombreNuevo){
 		}else{
 			puts("No se pudo renombrar el archivo o directorio");
 		}
+		freeNull(nombre);
 	}
 }
 
@@ -409,8 +419,10 @@ void crearDirectorio(char* path){
 		if (!existeDirectorio(nombreDir, idDirPadre)) {
 			crearDir(filesystem.directorios, nombreDir, idDirPadre);
 			printf("El directorio se creo correctamente\n");
-		} else
+		}else{
 			printf("El directorio ya existe\n");
+		}
+		freeNull(nombreDir);
 	}
 }
 
@@ -432,7 +444,8 @@ void copiarFrom(char* archivoLocal, char* dirFs, char* tipo) {
 					puts("El archivo local fue copiado exitosamente");
 				}
 			}
-		} else{
+			freeNull(nombre);
+		}else{
 			printf("el archivo no existe: %s\n", archivoLocal);
 		}
 	}
@@ -478,8 +491,10 @@ void mostrarArchivosDelDirectorio(char* directorio){
 				}
 			}
 			list_iterate(filesystem.archivos, (void*)_print_archivo_dir);
+		}else{
+			puts("El directorio no existe");
 		}
-		puts("El directorio no existe");
+		freeNull(nombre);
 	}
 }
 
@@ -574,9 +589,9 @@ t_list* partirArchivoEnBloques(char* archivo) {
 			int status = guardarBloque(archivo+offset, bytes_leidos, bloqueArchivo);
 			if (status < 0) {
 				puts("no se pudo enviar el bloque a los nodos correspondientes");
-				free(bloques);
-				free(bloqueArchivo->nodosBloque);
-				free(bloqueArchivo);
+				freeNull(bloques);
+				freeNull(bloqueArchivo->nodosBloque);
+				freeNull(bloqueArchivo);
 				return NULL;
 			}
 			list_add(bloques, bloqueArchivo);
@@ -592,9 +607,9 @@ t_list* partirArchivoEnBloques(char* archivo) {
 		int status = guardarBloque(archivo+offset, bytes_leidos, bloqueArchivo);
 		if (status < 0) {
 			puts("no se pudo enviar el bloque a los nodos correspondientes");
-			free(bloques);
-			free(bloqueArchivo->nodosBloque);
-			free(bloqueArchivo);
+			freeNull(bloques);
+			freeNull(bloqueArchivo->nodosBloque);
+			freeNull(bloqueArchivo);
 			return NULL;
 		}
 		list_add(bloques, bloqueArchivo);
@@ -642,7 +657,7 @@ int recibirInfoNodo(int fd){
 	}
 	t_nodo* nodo = crearNodo(fd, nombre, ipNodo, string_itoa(puerto), cantBloquesData);
 	list_add(filesystem.nodos, nodo);
-	free(nombre);
+	freeNull(nombre);
 	return 1;
 }
 
@@ -739,7 +754,7 @@ t_list* distribuirBloque(){
 	}
 	anb1->info = nodo1->info;
 	anb1->numeroBloque = getBloqueLibreNodo(nodo1);
-	//printInfoNodo(nodo1);
+
 	t_nodo* nodo2 = getNodoParaGuardarBloqueDistintoANodo(filesystem.nodos, nodo1);
 	if(nodo1 == NULL){
 		puts("No se pudo distribuir el bloque");
@@ -749,7 +764,6 @@ t_list* distribuirBloque(){
 	}
 	anb2->info = nodo2->info;
 	anb2->numeroBloque = getBloqueLibreNodo(nodo2);
-	//printInfoNodo(nodo2);
 
 	list_add(bloqueCopias, anb1);
 	list_add(bloqueCopias, anb2);
@@ -820,9 +834,9 @@ int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque){
 	printf("tamaño del bloque:%d\n", string_length(bloque));
 	if (enviarString(fd1, bloque) <= 0){
 		perror("Error al mandar el bloque al nodo\n");
-		free(nb1);
-		free(nb2);
-		free(bloque);
+		freeNull(nb1);
+		freeNull(nb2);
+		freeNull(bloque);
 		return -1;
 	}else{
 		marcarBloqueComoUsado(nb1->info->nombre, nb1->numeroBloque);
@@ -834,15 +848,15 @@ int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque){
 	puts("Numero de bloque enviado!");
 	if (enviarString(fd2, bloque) <= 0){
 		perror("Error al mandar el bloque al nodo\n");
-		free(nb1);
-		free(nb2);
-		free(bloque);
+		freeNull(nb1);
+		freeNull(nb2);
+		freeNull(bloque);
 		return -1;
 	}else{
 		marcarBloqueComoUsado(nb2->info->nombre, nb2->numeroBloque);
 		puts("Bloque 2 enviado al segundo nodo!");
 	}
-	free(bloque);
+	freeNull(bloque);
 	return 1;
 }
 
@@ -856,6 +870,11 @@ t_nodo* buscarNodoPorNombre(char* nombre){
 void marcarBloqueComoUsado(char* nombre, int numeroBloque){
 	t_nodo* nodo = buscarNodoPorNombre(nombre);
 	nodo->bloques[numeroBloque].ocupado = 1;
+}
+
+void marcarBloqueComoLibre(char* nombre, int numeroBloque){
+	t_nodo* nodo = buscarNodoPorNombre(nombre);
+	nodo->bloques[numeroBloque].ocupado = 0;
 }
 
 int guardarBloque(char* data, size_t tamanio, t_archivo_bloque* ab){
@@ -881,8 +900,9 @@ void persistirNodos(){
 		t_nodo* nodo = list_get(filesystem.nodos, i);
 		string_append_with_format(&nodos, "%s,", nodo->info->nombre);
 	}
-	char* nodosAux = string_substring_until(nodos, string_length(nodos) - 1);
-	string_append(nodosAux, "]");
+	char* nodosAux = string_new();
+	string_append(&nodosAux, string_substring_until(nodos, string_length(nodos) - 1));
+	string_append(&nodosAux, "]");
 	txt_write_in_file(file, nodosAux);
 	for (i = 0; i < list_size(filesystem.nodos); i++){
 		char* nodoTotal = string_new();
@@ -892,13 +912,13 @@ void persistirNodos(){
 		char* nodoLibre = string_new();
 		string_append_with_format(&nodoLibre, "%sLibre=%d", nodo->info->nombre, cantBloquesLibresNodo(nodo));
 		txt_write_in_file(file, nodoLibre);
-		free(nodoTotal);
-		free(nodoLibre);
+		freeNull(nodoTotal);
+		freeNull(nodoLibre);
 	}
-	free(tamanio);
-	free(libre);
-	free(nodos);
-	free(nodosAux);
+	freeNull(tamanio);
+	freeNull(libre);
+	freeNull(nodos);
+	freeNull(nodosAux);
 	txt_close_file(file);
 	persistirBitmaps();
 }
@@ -918,8 +938,8 @@ void persistirBitmaps(){
 		}
 		txt_write_in_file(file, bitmap);
 		txt_close_file(file);
-		free(path);
-		free(bitmap);
+		freeNull(path);
+		freeNull(bitmap);
 	}
 }
 
@@ -942,8 +962,8 @@ t_archivo_info* getInfoArchivo(char* nombre, char* tipo, int dirPadre) {
 }
 
 void destruirArchivoNodoBloque(t_archivo_nodo_bloque* anb1){
-	free(anb1->info);
-	free(anb1);
+	freeNull(anb1->info);
+	freeNull(anb1);
 }
 
 t_archivo_bloque* crearBloqueArchivo(int numero, int tamanio){
@@ -1019,7 +1039,7 @@ t_archivo* buscarArchivoPorNombreAbsoluto(char* path_abs){
 
 	int dir_id = dirGetIndex(dir);
 
-	free(dir);dir=NULL;
+	freeNull(dir);
 
 	t_archivo* archivo = buscarArchivoPorNombre(filesystem.archivos, name, dir_id);
 
@@ -1037,8 +1057,8 @@ void renombrarArchivo(char* nombreViejo, char* nombreNuevo){
 	}else{
 		puts("No se pudo renombrar el archivo");
 	}
-	free(pathMetadataOld);
-	free(pathMetadataNew);
+	freeNull(pathMetadataOld);
+	freeNull(pathMetadataNew);
 }
 
 void crearArchivoMetadata(t_archivo* archivo){
@@ -1052,8 +1072,8 @@ void crearArchivoMetadata(t_archivo* archivo){
 
 		char** nombre = string_split(archivo->info->nombre, ".");
 		string_append_with_format(&path, "/%s.csv", nombre[0]);
-        persistirArchivo(archivo, path);
-    	destroySplit(nombre);
+		persistirArchivo(archivo, path);
+		destroySplit(nombre);
 		closedir(dir);
 	}
 	else if (ENOENT == errno)
@@ -1067,7 +1087,7 @@ void crearArchivoMetadata(t_archivo* archivo){
 		destroySplit(nombre);
 	}
 
-	free(path);
+	freeNull(path);
 }
 
 void persistirArchivo(t_archivo* archivo, char* path){
@@ -1087,16 +1107,16 @@ void persistirArchivo(t_archivo* archivo, char* path){
 			t_archivo_nodo_bloque* anb = list_get(ab->nodosBloque, j);
 			string_append_with_format(&bloque, "BLOQUE%dCOPIA%d=[%s,%d]", i, j, anb->info->nombre, anb->numeroBloque);
 			txt_write_in_file(file, bloque);
-			free(bloque);
+			freeNull(bloque);
 		}
 		char* tamanioBloque = string_new();
 		string_append_with_format(&tamanio, "BLOQUE%dBYTES=%d", i, ab->tamanio);
 		txt_write_in_file(file, tamanioBloque);
-		free(tamanioBloque);
+		freeNull(tamanioBloque);
 	}
 	txt_close_file(file);
-	free(tamanio);
-	free(tipo);
+	freeNull(tamanio);
+	freeNull(tipo);
 }
 
 char* getPathMetadataArchivo(t_archivo* archivo){
@@ -1109,13 +1129,41 @@ char* getPathMetadataArchivo(t_archivo* archivo){
 	return path;
 }
 
+void borrarArchivoFs(char* nombre, int dirId){
+	t_archivo* archivo = buscarArchivoPorNombre(filesystem.archivos, nombre, dirId);
+	void _liberar_bloque(t_archivo_bloque* ab){
+		void _liberar_copia(t_archivo_nodo_bloque* anb){
+			marcarBloqueComoLibre(anb->info->nombre, anb->numeroBloque);
+		}
+		list_iterate(ab->nodosBloque, (void*)_liberar_copia);
+	}
+	list_iterate(archivo->bloquesDeDatos, (void*)_liberar_bloque);
+	bool _es_archivo_buscado(t_archivo* arch){
+		return arch->info->nombre == nombre && arch->info->directorio == dirId;
+	}
+	list_remove_and_destroy_by_condition(filesystem.archivos, (void*)_es_archivo_buscado, (void*)destroyArchivo);
+	char* pathMetadata = getPathMetadataArchivo(archivo);
+	remove(pathMetadata);
+	freeNull(pathMetadata);
+}
+
+void destroyArchivo(t_archivo* archivo){
+	freeNull(archivo->info);
+	list_destroy_and_destroy_elements(archivo->bloquesDeDatos, (void*)destroyBloqueDeDatos);
+	freeNull(archivo);
+}
+
+void destroyBloqueDeDatos(t_archivo_bloque* bloque_de_datos){
+	list_destroy_and_destroy_elements(bloque_de_datos->nodosBloque,(void*)destruirArchivoNodoBloque);
+	freeNull(bloque_de_datos)
+}
+
 /* FIN FUNCIONES DE ARCHIVOS */
 
 /* INICIO FUNCIONES DE DIRECTORIOS */
 
 void destruirDirectorio(t_directorio* directorio){
-	free(directorio);
-	directorio = NULL;
+	freeNull(directorio);
 }
 
 int eliminarDirectorioPorId(t_list* directorios, int id){
@@ -1131,7 +1179,7 @@ int eliminarDirectorioPorId(t_list* directorios, int id){
 
 	memcpy(map + ((id-1)*sizeof(t_directorio)), dir, sizeof(t_directorio));
 
-	free(dir);
+	freeNull(dir);
 	desmapearArchivo(map, FILE_DIRECTORIO);
 
 	bool _buscar_directorio_por_id(t_directorio* dir){
@@ -1155,7 +1203,7 @@ int renombrarDirectorio(t_list* directorios, int id, char* nuevoNombre){
 
 	memcpy(map + ((id - 1) * sizeof(t_directorio)), dir, sizeof(t_directorio));
 
-	free(dir);
+	freeNull(dir);
 	desmapearArchivo(map, FILE_DIRECTORIO);
 
 
@@ -1197,7 +1245,7 @@ int obtenerUltimoIndexDirectorios() {
 			break;
 		}
 	}
-	free(dir);
+	freeNull(dir);
 	desmapearArchivo(map, FILE_DIRECTORIO);
 	return index_new;
 }
@@ -1245,7 +1293,7 @@ void formatearDirectorios() {
 		memcpy(map + i * sizeof(t_directorio), dir, sizeof(t_directorio));
 	}
 
-	free(dir);
+	freeNull(dir);
 
 	desmapearArchivo(map, FILE_DIRECTORIO);
 

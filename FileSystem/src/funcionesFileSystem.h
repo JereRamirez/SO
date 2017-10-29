@@ -33,6 +33,10 @@
 
 #define DIR_CANT_MAX 100
 
+#define freeNull(p) \
+    {free(p); \
+    p = NULL;}
+
 #define FILE_DIRECTORIO "metadata/directorios.bin"
 #define FILE_NODOS "metadata/nodos.bin"
 #define DIRECTORIO_ARCHIVOS "metadata/archivos/"
@@ -139,7 +143,7 @@ void iniciarServer(void* arg);
 /* FUNCIONES CONSOLA */
 
 void mostrarConsola(); //DONE
-void borrarArchivo(char* archivo);
+void borrarArchivo(char* archivo); //DONE
 void borrarDirectorio(char* directorio); //DONE
 void borrarBloque(char* archivo, char* bloque, char* copia);
 void renombrar(char* nombreViejo, char* nombreNuevo); //DONE
@@ -170,6 +174,9 @@ void renombrarArchivo(char* nombreViejo, char* nombreNuevo);
 void crearArchivoMetadata(t_archivo* archivo);
 void persistirArchivo(t_archivo* archivo, char* path);
 char* getPathMetadataArchivo(t_archivo* archivo);
+void borrarArchivoFs(char* nombre, int dirId);
+void destroyArchivo(t_archivo* archivo);
+void destroyBloqueDeDatos(t_archivo_bloque* bloque_de_datos);
 
 /* FUNCIONES DIRECTORIOS */
 
@@ -211,6 +218,7 @@ int cantBloquesLibresFs();
 int cantBloquesLibresNodo(t_nodo* nodo);
 int copiarArchivoLocalAlFs(char* nombre, char* tipo, int dirPadre);
 void marcarBloqueComoUsado(char* nombre, int numeroBloque);
+void marcarBloqueComoLibre(char* nombre, int numeroBloque);
 int guardarBloque(char* data, size_t tamanio, t_archivo_bloque* ab);
 
 #endif /* FUNCIONESFILESYSTEM_H_ */
