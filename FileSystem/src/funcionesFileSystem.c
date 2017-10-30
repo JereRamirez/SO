@@ -280,12 +280,16 @@ void renombrar(char* nombreViejo, char* nombreNuevo){
 	}else{
 		char* nombre = basename(string_duplicate(nombreViejo));
 		int dirId = dirGetIndex(dirname(string_duplicate(nombreViejo)));
-		if(string_contains(nombre, ".") && existeArchivoEnFS(nombre, dirId)){
-			renombrarArchivo(nombreViejo, nombreNuevo);
+		if(string_contains(nombre, ".")){
+			if(existeArchivoEnFS(nombre, dirId)){
+				renombrarArchivo(nombreViejo, nombreNuevo);
+			}else{
+				puts("El archivo no existe");
+			}
 		}else if(existeDirectorio(nombre, dirId)){
 			renombrarDirectorio(filesystem.directorios, dirGetIndex(nombreViejo), nombreNuevo);
 		}else{
-			puts("No se pudo renombrar el archivo o directorio");
+			puts("El directorio no existe");
 		}
 	}
 }
@@ -294,7 +298,19 @@ void mover(char* ubicacionVieja, char* ubicacionNueva){
 	if(ubicacionVieja == NULL || ubicacionNueva == NULL){
 		printf("Falta especificar ubicación actual o ubicación deseada\n");
 	}else{
-		printf("Moviendo Archivo/Directorio de: %s a: %s \n", ubicacionVieja, ubicacionNueva);
+		char* nombre = basename(string_duplicate(ubicacionVieja));
+		int dirId = dirGetIndex(dirname(string_duplicate(ubicacionVieja)));
+		if(string_contains(nombre, ".")){
+			if(existeArchivoEnFS(nombre, dirId)){
+				moverArchivo(nombre, dirId, dirname(string_duplicate(ubicacionNueva)));
+			}else{
+				puts("El archivo no existe");
+			}
+		}else if(existeDirectorio(nombre, dirId)){
+			moverDirectorio(dirGetIndex(ubicacionVieja), dirname(string_duplicate(ubicacionNueva)));
+		}else{
+			puts("El directorio no existe");
+		}
 	}
 }
 
@@ -342,7 +358,8 @@ void copiarFrom(char* archivoLocal, char* dirFs, char* tipo) {
 				printf("el archivo %s ya existe en el filesystem\n", nombre);
 			}
 		}else{
-			printf("el archivo no existe: %s\n", archivoLocal);		}
+			printf("el archivo no existe: %s\n", archivoLocal);
+		}
 	}
 }
 
@@ -1025,6 +1042,16 @@ char* getPathMetadataArchivo(t_archivo* archivo){
 	return path;
 }
 
+void moverArchivo(char* nombre, int idDirArchivo, char* dirDestino){
+	t_archivo* archivo = buscarArchivoPorNombre(filesystem.archivos ,nombre, idDirArchivo);
+	int idDirDestino = dirGetIndex(dirDestino);
+	char* pathMetadataOld = getPathMetadataArchivo(archivo);
+	remove(pathMetadataOld);
+	archivo->info->directorio = idDirDestino;
+	crearArchivoMetadata(archivo);
+	freeNull(pathMetadataOld);
+}
+
 void borrarArchivoFs(char* nombre, int dirId){
 	t_archivo* archivo = buscarArchivoPorNombre(filesystem.archivos, nombre, dirId);
 	void _liberar_bloque(t_archivo_bloque* ab){
@@ -1168,6 +1195,8 @@ int crearDir(t_list* directorios, char* nombre, int padre) {
 
 	printf("se creo el directorio %s con padre %d e indice %d\n", dir->nombre,dir->padre, dir->index);
 
+	desmapearArchivo(map, FILE_DIRECTORIO);
+
 	return 0;
 }
 
@@ -1241,5 +1270,14 @@ int dirGetIndex(char* path){
 	destroySplit(nombres);
 
 	return rs;
+}
+
+void moverDirectorio(int idDirAMover, char* dirDestino){
+	t_directorio* dirAMover = buscarDirectorioPorId(filesystem.directorios ,idDirAMover);
+	int idDirDestino = dirGetIndex(dirDestino);
+	dirAMover->padre = idDirDestino;
+	char* map = mapearArchivo(FILE_DIRECTORIO);
+	memcpy(map + ((dirAMover->index-1)*sizeof(t_directorio)), dirAMover, sizeof(t_directorio));
+	desmapearArchivo(map, FILE_DIRECTORIO);
 }
 /* FIN FUNCIONES DE DIRECTORIOS */

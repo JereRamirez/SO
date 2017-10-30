@@ -142,7 +142,7 @@ void borrarArchivo(char* archivo); //DONE
 void borrarDirectorio(char* directorio); //DONE
 void borrarBloque(char* archivo, char* bloque, char* copia);
 void renombrar(char* nombreViejo, char* nombreNuevo); //DONE
-void mover(char* ubicacionVieja, char* ubicacionNueva);
+void mover(char* ubicacionVieja, char* ubicacionNueva); //DONE
 void mostrarContenidoArchivo(char * archivo);
 void crearDirectorio(char* directorio); //DONE
 void copiarFrom(char* origen, char* destino, char* tipo); //DONE
@@ -170,6 +170,7 @@ void crearArchivoMetadata(t_archivo* archivo);
 void persistirArchivo(t_archivo* archivo, char* path);
 char* getPathMetadataArchivo(t_archivo* archivo);
 void borrarArchivoFs(char* nombre, int dirId);
+void moverArchivo(char* nombre, int idDirArchivo, char* dirDestino);
 void destroyArchivo(t_archivo* archivo);
 void destroyBloqueDeDatos(t_archivo_bloque* bloque_de_datos);
 
@@ -187,6 +188,7 @@ void destruirDirectorio(t_directorio* directorio);
 bool existeDirectorio(char* nombre, int padre);
 bool tieneArchivosDir(int dirId);
 int dirGetIndex(char* path);
+void moverDirectorio(int idDirAMover, char* dirDestino);
 
 /* Otras funciones */
 
