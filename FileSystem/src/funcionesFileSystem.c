@@ -237,6 +237,7 @@ void borrarArchivo(char* archivo){
 		if(existeArchivoEnFS(nombre, dirId)){
 			borrarArchivoFs(nombre, dirId);
 			puts("Archivo borrado exitosamente");
+			persistirNodos();
 		}else{
 			puts("El archivo no existe");
 		}
@@ -337,10 +338,11 @@ void copiarFrom(char* archivoLocal, char* dirFs, char* tipo) {
 				}else{
 					puts("El archivo local fue copiado exitosamente");
 				}
+			}else{
+				printf("el archivo %s ya existe en el filesystem\n", nombre);
 			}
 		}else{
-			printf("el archivo no existe: %s\n", archivoLocal);
-		}
+			printf("el archivo no existe: %s\n", archivoLocal);		}
 	}
 }
 
@@ -505,7 +507,6 @@ t_list* partirArchivoEnBloques(char* archivo) {
 			return NULL;
 		}
 		list_add(bloques, bloqueArchivo);
-		printf("El tamaño del bloque es: %d \n", bytes_leidos);
 	}
 
 	return bloques;
@@ -529,9 +530,6 @@ int procesarMensaje(int fd){
 			return -1;
 		};
 		break;
-	case ALMACENAR_ARCHIVO:
-		//almacenarArchivo(fd);
-		break;
 	}
 	return 1;
 }
@@ -553,7 +551,9 @@ int recibirInfoNodo(int fd){
 	t_nodo* nodo = crearNodo(fd, nombre, ipNodo, string_itoa(puerto), cantBloquesData);
 	list_add(filesystem.nodos, nodo);
 	printInfoNodo(nodo);
+	enviarInt(fd, HANDSHAKE_OK);
 	freeNull(nombre);
+	persistirNodos();
 	return 1;
 }
 
@@ -567,7 +567,7 @@ t_nodo* crearNodo(int fd, char* nombre, char* ipNodo, char* puerto, u_int32_t ta
 	t_nodo* nodo = malloc(sizeof(t_nodo));
 	nodo->info = malloc(sizeof(t_nodo_info));
 	nodo->info->nombre = string_duplicate(nombre);
-	strcpy(nodo->info->ip, ipNodo);
+	nodo->info->ip = string_duplicate(ipNodo);
 	nodo->info->puerto = string_duplicate(puerto);
 	nodo->fd = fd;
 	nodo->conectado = true;
@@ -652,7 +652,7 @@ t_list* distribuirBloque(){
 	anb1->numeroBloque = getBloqueLibreNodo(nodo1);
 
 	t_nodo* nodo2 = getNodoParaGuardarBloqueDistintoANodo(filesystem.nodos, nodo1);
-	if(nodo1 == NULL){
+	if(nodo2 == NULL){
 		puts("No se pudo distribuir el bloque");
 		destruirArchivoNodoBloque(anb1);
 		destruirArchivoNodoBloque(anb2);
@@ -784,10 +784,10 @@ void persistirNodos(){
 	limpiarArchivo(FILE_NODOS);
 	FILE* file = txt_open_for_append(FILE_NODOS);
 	char* tamanio = string_new();
-	string_append_with_format(&tamanio, "TAMANIO=%s", cantTotalBloquesFs());
+	string_append_with_format(&tamanio, "TAMANIO=%d\n", cantTotalBloquesFs());
 	txt_write_in_file(file, tamanio);
 	char* libre = string_new();
-	string_append_with_format(&libre, "LIBRE=%d", cantBloquesLibresFs());
+	string_append_with_format(&libre, "LIBRE=%d\n", cantBloquesLibresFs());
 	txt_write_in_file(file, libre);
 	char* nodos = string_new();
 	string_append(&nodos, "NODOS=[");
@@ -798,15 +798,15 @@ void persistirNodos(){
 	}
 	char* nodosAux = string_new();
 	string_append(&nodosAux, string_substring_until(nodos, string_length(nodos) - 1));
-	string_append(&nodosAux, "]");
+	string_append(&nodosAux, "]\n");
 	txt_write_in_file(file, nodosAux);
 	for (i = 0; i < list_size(filesystem.nodos); i++){
 		char* nodoTotal = string_new();
 		t_nodo* nodo = list_get(filesystem.nodos, i);
-		string_append_with_format(&nodoTotal, "%sTotal=%d", nodo->info->nombre, nodo->cantBloques);
+		string_append_with_format(&nodoTotal, "%sTotal=%d\n", nodo->info->nombre, nodo->cantBloques);
 		txt_write_in_file(file, nodoTotal);
 		char* nodoLibre = string_new();
-		string_append_with_format(&nodoLibre, "%sLibre=%d", nodo->info->nombre, cantBloquesLibresNodo(nodo));
+		string_append_with_format(&nodoLibre, "%sLibre=%d\n", nodo->info->nombre, cantBloquesLibresNodo(nodo));
 		txt_write_in_file(file, nodoLibre);
 		freeNull(nodoTotal);
 		freeNull(nodoLibre);
@@ -829,7 +829,7 @@ void persistirBitmaps(){
 		limpiarArchivo(path);
 		FILE* file = txt_open_for_append(path);
 		char* bitmap = string_new();
-		for (j = 0; i < nodo->cantBloques; i++){
+		for (j = 0; j < nodo->cantBloques; j++){
 			string_append_with_format(&bitmap, "%s", string_itoa(nodo->bloques[j].ocupado));
 		}
 		txt_write_in_file(file, bitmap);
@@ -990,23 +990,23 @@ void persistirArchivo(t_archivo* archivo, char* path){
 	limpiarArchivo(path);
 	FILE* file = txt_open_for_append(path);
 	char* tamanio = string_new();
-	string_append_with_format(&tamanio, "TAMANIO=%s", string_itoa(archivo->info->tamanio));
+	string_append_with_format(&tamanio, "TAMANIO=%s\n", string_itoa(archivo->info->tamanio));
 	txt_write_in_file(file, tamanio);
 	char* tipo = string_new();
-	string_append_with_format(&tipo, "TIPO=%s", archivo->info->tipo);
+	string_append_with_format(&tipo, "TIPO=%s\n", archivo->info->tipo);
 	txt_write_in_file(file, tipo);
 	int i, j;
 	for (i = 0; i < archivo->info->cantBloques; i++){
 		t_archivo_bloque* ab = list_get(archivo->bloquesDeDatos, i);
-		for (j = 0; i < list_size(ab->nodosBloque); i++){
+		for (j = 0; j < list_size(ab->nodosBloque); j++){
 			char* bloque = string_new();
 			t_archivo_nodo_bloque* anb = list_get(ab->nodosBloque, j);
-			string_append_with_format(&bloque, "BLOQUE%dCOPIA%d=[%s,%d]", i, j, anb->info->nombre, anb->numeroBloque);
+			string_append_with_format(&bloque, "BLOQUE%dCOPIA%d=[%s,%d]\n", i, j, anb->info->nombre, anb->numeroBloque);
 			txt_write_in_file(file, bloque);
 			freeNull(bloque);
 		}
 		char* tamanioBloque = string_new();
-		string_append_with_format(&tamanio, "BLOQUE%dBYTES=%d", i, ab->tamanio);
+		string_append_with_format(&tamanio, "BLOQUE%dBYTES=%d\n", i, ab->tamanio);
 		txt_write_in_file(file, tamanioBloque);
 		freeNull(tamanioBloque);
 	}
@@ -1034,24 +1034,24 @@ void borrarArchivoFs(char* nombre, int dirId){
 		list_iterate(ab->nodosBloque, (void*)_liberar_copia);
 	}
 	list_iterate(archivo->bloquesDeDatos, (void*)_liberar_bloque);
+	char* pathMetadata = getPathMetadataArchivo(archivo);
+	remove(pathMetadata);
+	freeNull(pathMetadata);
 	bool _es_archivo_buscado(t_archivo* arch){
 		return arch->info->nombre == nombre && arch->info->directorio == dirId;
 	}
 	list_remove_and_destroy_by_condition(filesystem.archivos, (void*)_es_archivo_buscado, (void*)destroyArchivo);
-	char* pathMetadata = getPathMetadataArchivo(archivo);
-	remove(pathMetadata);
-	freeNull(pathMetadata);
 }
 
 void destroyArchivo(t_archivo* archivo){
 	freeNull(archivo->info);
 	list_destroy_and_destroy_elements(archivo->bloquesDeDatos, (void*)destroyBloqueDeDatos);
-	freeNull(archivo);
+	//freeNull(archivo);
 }
 
 void destroyBloqueDeDatos(t_archivo_bloque* bloque_de_datos){
 	list_destroy_and_destroy_elements(bloque_de_datos->nodosBloque,(void*)destruirArchivoNodoBloque);
-	freeNull(bloque_de_datos)
+	//freeNull(bloque_de_datos)
 }
 
 /* FIN FUNCIONES DE ARCHIVOS */
