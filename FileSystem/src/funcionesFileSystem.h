@@ -24,9 +24,11 @@
 #include <commons/log.h>
 #include <commons/txt.h>
 
+#define PUERTO "6680"
 #define GETBLOQUE 123
 #define SETBLOQUE 321
-#define HANDSHAKE_NODO 456
+#define ALMACENAR_ARCHIVO 630
+#define HANDSHAKE_NODO 10100
 
 #define CANT_COPIAS_BLOQUE 2
 #define TAMANIO_BLOQUE (1024*1024)
@@ -52,13 +54,6 @@ pthread_t hiloServer;
 typedef struct{
 	int ocupado;
 } t_bitmap;
-
-
-typedef struct {
-	char *PUERTO;
-} t_config_FS;
-
-t_config_FS config;
 
 typedef struct {
 	t_list* nodos;
@@ -131,7 +126,6 @@ void destroySplit(char** split);
 
 /* FUNCIONES PRINCIPALES */
 
-int cargarConfig(char* path);
 void startFilesystem(char* flag);
 void crearFilesystem();
 void iniciarFilesystemLimpio();
@@ -195,7 +189,6 @@ int dirGetIndex(char* path);
 
 /* Otras funciones */
 
-void informarErrorYLiberarEstructuras(t_config *config_tmp, char *toLog);
 t_list* partirArchivoEnBloques(char* archivo);
 int cantBloquesNecesarios(char* archivo);
 int lenHastaEnter(char* strings);

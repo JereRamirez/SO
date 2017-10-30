@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
 
 	puts("******* PROCESO FILESYSTEM *******");
 
-	cargarConfig(argv[2]);
+	logger = log_create("Filesystem.log", "FileSystem", false, LOG_LEVEL_TRACE);
 
 	startFilesystem(argv[1]);
 

@@ -9,36 +9,6 @@
 
 /* INICIO FUNCIONES PRINCIPALES */
 
-int cargarConfig(char* path){
-
-	logger = log_create("logFS.log", "FileSystem", false, LOG_LEVEL_TRACE);
-
-	char *path_archivo_configuracion = path;
-
-	t_config *config_tmp= config_create(path_archivo_configuracion);
-
-	if (!config_tmp) {
-		char *string = string_new();
-		string_append(&string, "Error al leer el archivo de configuracion en ");
-		string_append(&string, path_archivo_configuracion);
-		informarErrorYLiberarEstructuras(config_tmp, string);
-		free(string);
-		return EXIT_FAILURE;
-	}
-
-	bool has_PUERTO = config_has_property(config_tmp, "PUERTO");
-	if(!has_PUERTO){
-		informarErrorYLiberarEstructuras(config_tmp, "Falta parametro PUERTO en el archivo de configuración.");
-		return EXIT_FAILURE;
-	}
-
-	config.PUERTO = config_get_string_value(config_tmp, "PUERTO");
-	log_info(logger, "PUERTO FS = %s", config.PUERTO);
-
-	free(config_tmp);
-	return EXIT_SUCCESS;
-}
-
 void startFilesystem(char* flag){
 	if(!strncmp(flag, "--clean", 7)){
 		iniciarFilesystemLimpio();
@@ -53,7 +23,7 @@ void iniciarFilesystemLimpio(){
 
 	formatearDirectorios();
 
-	crearServer(config.PUERTO);
+	crearServer(PUERTO);
 
 	pthread_create(&hiloConsola, NULL, (void*)mostrarConsola, NULL);
 
@@ -66,7 +36,7 @@ void iniciarFilesystemConBackUp(){
 
 	cargarBackUp();
 
-	crearServer(config.PUERTO);
+	crearServer(PUERTO);
 
 	pthread_create(&hiloConsola, NULL, (void*)mostrarConsola, NULL);
 
@@ -84,12 +54,6 @@ void cargarBackUp(){
 
 void errorHandler(char* msj){
 	do{perror(msj);exit(EXIT_FAILURE);} while(0);
-}
-
-void informarErrorYLiberarEstructuras(t_config *config_tmp, char *toLog){
-	log_error(logger, toLog);
-	free(config_tmp);
-	log_destroy(logger);
 }
 
 bool existeArchivo(const char* archivo) {
@@ -131,71 +95,6 @@ size_t tamanioArchivo(char* archivo) {
 void limpiarArchivo(char *path) {
 
 	FILE *f = fopen(path, "wb");
-
-	fclose(f);
-}
-
-// Lee un archivo y retorna TOD0 su contenido
-
-char *leerArchivoCompleto(char *path) {
-
-	FILE *f = fopen(path, "rb");
-	if (f == NULL) {
-		perror("Error al abrir el archivo");
-		exit(EXIT_FAILURE);
-	}
-
-	fseek(f, 0, SEEK_END);
-	long fsize = ftell(f);
-	fseek(f, 0, SEEK_SET);
-
-	char *buffer = malloc(fsize + 1);
-	if (buffer == NULL) {
-		perror("Error al hacer malloc");
-		exit(EXIT_FAILURE);
-	}
-
-	fread(buffer, fsize, 1, f);
-
-	fclose(f);
-
-	buffer[fsize] = '\0';
-
-	return buffer;
-}
-
-// Lee un archivo y retorna la cantidad que pasamos en "tamaño"
-
-char* leerArchivo(char *path, size_t tamanio) {
-
-	FILE *f = fopen(path, "rb");
-	if (f == NULL) {
-		perror("fopen");
-		exit(EXIT_FAILURE);
-	}
-
-	char *buffer = malloc(tamanio + 1);
-	if (buffer == NULL) {
-		perror("Error al hacer malloc");
-		exit(EXIT_FAILURE);
-	}
-
-	fread(buffer, tamanio, 1, f);
-
-	fclose(f);
-
-	buffer[tamanio] = '\0';
-
-	return buffer;
-}
-
-// Escribe datos en un archivo
-
-void escribirArchivo(char *path, char *datos, size_t tamanio) {
-
-	FILE *f = fopen(path, "wb");
-
-	fwrite(datos, 1, tamanio, f);
 
 	fclose(f);
 }
@@ -245,8 +144,7 @@ void destroySplit(char** split){
 		freeNull(split[i]);
 		i++;
 	}
-	//free(split);
-	//split = NULL;
+
 	freeNull(split);
 }
 
@@ -255,7 +153,7 @@ void destroySplit(char** split){
 /* INICIO FUNCIONES CONSOLA */
 
 void mostrarConsola() {
-	char * linea;
+	char* linea;
 	char** lineas;
 	while(1) {
 		linea = readline(">");
@@ -364,8 +262,6 @@ void borrarDirectorio(char* directorio){
 		}else{
 			printf("El directorio no existe\n");
 		}
-
-		freeNull(nombreDir);
 	}
 }
 
@@ -390,7 +286,6 @@ void renombrar(char* nombreViejo, char* nombreNuevo){
 		}else{
 			puts("No se pudo renombrar el archivo o directorio");
 		}
-		freeNull(nombre);
 	}
 }
 
@@ -422,7 +317,6 @@ void crearDirectorio(char* path){
 		}else{
 			printf("El directorio ya existe\n");
 		}
-		freeNull(nombreDir);
 	}
 }
 
@@ -444,7 +338,6 @@ void copiarFrom(char* archivoLocal, char* dirFs, char* tipo) {
 					puts("El archivo local fue copiado exitosamente");
 				}
 			}
-			freeNull(nombre);
 		}else{
 			printf("el archivo no existe: %s\n", archivoLocal);
 		}
@@ -494,7 +387,6 @@ void mostrarArchivosDelDirectorio(char* directorio){
 		}else{
 			puts("El directorio no existe");
 		}
-		freeNull(nombre);
 	}
 }
 
@@ -637,6 +529,9 @@ int procesarMensaje(int fd){
 			return -1;
 		};
 		break;
+	case ALMACENAR_ARCHIVO:
+		//almacenarArchivo(fd);
+		break;
 	}
 	return 1;
 }
@@ -657,6 +552,7 @@ int recibirInfoNodo(int fd){
 	}
 	t_nodo* nodo = crearNodo(fd, nombre, ipNodo, string_itoa(puerto), cantBloquesData);
 	list_add(filesystem.nodos, nodo);
+	printInfoNodo(nodo);
 	freeNull(nombre);
 	return 1;
 }
@@ -1206,10 +1102,8 @@ int renombrarDirectorio(t_list* directorios, int id, char* nuevoNombre){
 	freeNull(dir);
 	desmapearArchivo(map, FILE_DIRECTORIO);
 
-
 	dir = buscarDirectorioPorId(directorios, id);
 	strcpy(dir->nombre, nuevoNombre);
-
 	puts("Directorio renombrado exitosamente");
 
 	return 0;
