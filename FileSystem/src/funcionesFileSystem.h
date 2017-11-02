@@ -140,10 +140,10 @@ void iniciarServer(void* arg);
 void mostrarConsola(); //DONE
 void borrarArchivo(char* archivo); //DONE
 void borrarDirectorio(char* directorio); //DONE
-void borrarBloque(char* archivo, char* bloque, char* copia);
+void borrarBloque(char* archivo, char* bloque, char* copia); //DONE
 void renombrar(char* nombreViejo, char* nombreNuevo); //DONE
 void mover(char* ubicacionVieja, char* ubicacionNueva); //DONE
-void mostrarContenidoArchivo(char * archivo);
+void mostrarContenidoArchivo(char* archivo);
 void crearDirectorio(char* directorio); //DONE
 void copiarFrom(char* origen, char* destino, char* tipo); //DONE
 void copiarTo(char* origen, char* destino);
@@ -171,6 +171,7 @@ void persistirArchivo(t_archivo* archivo, char* path);
 char* getPathMetadataArchivo(t_archivo* archivo);
 void borrarArchivoFs(char* nombre, int dirId);
 void moverArchivo(char* nombre, int idDirArchivo, char* dirDestino);
+void borrarBloqueDeArchivo(char* pathArchivo, int bloque, int copia);
 void destroyArchivo(t_archivo* archivo);
 void destroyBloqueDeDatos(t_archivo_bloque* bloque_de_datos);
 

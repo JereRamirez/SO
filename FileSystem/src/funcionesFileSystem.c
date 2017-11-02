@@ -270,7 +270,7 @@ void borrarBloque(char* archivo, char* bloque, char* copia){
 	if(archivo == NULL || bloque == NULL || copia == NULL){
 		printf("Falta especificar archivo,bloque o copia\n");
 	}else{
-		printf("Borrando la copia: %s del bloque: %s del archivo: %s \n", copia, bloque, archivo );
+		borrarBloqueDeArchivo(archivo, atoi(bloque), atoi(copia));
 	}
 }
 
@@ -1079,6 +1079,29 @@ void destroyArchivo(t_archivo* archivo){
 void destroyBloqueDeDatos(t_archivo_bloque* bloque_de_datos){
 	list_destroy_and_destroy_elements(bloque_de_datos->nodosBloque,(void*)destruirArchivoNodoBloque);
 	//freeNull(bloque_de_datos)
+}
+
+void borrarBloqueDeArchivo(char* pathArchivo, int bloque, int copia){
+	t_archivo* archivo = buscarArchivoPorNombreAbsoluto(pathArchivo);
+	if(archivo == NULL){
+		puts("El archivo no existe");
+	}else{
+		t_archivo_bloque* block = buscarBloqueArchivo(archivo, bloque);
+		if(block == NULL){
+			puts("El bloque no existe");
+		}else{
+			if(list_size(block->nodosBloque) < 2){
+				puts("No se puede borrar la copia indicada ya que es la única existente");
+			}else{
+				t_archivo_nodo_bloque* anb = list_get(block->nodosBloque, copia - 1);
+				marcarBloqueComoLibre(anb->info->nombre, anb->numeroBloque);
+				persistirNodos();
+				list_remove_and_destroy_element(block->nodosBloque, copia - 1, (void*)destruirArchivoNodoBloque);
+				crearArchivoMetadata(archivo);
+				puts("Copia borrada exitosamente");
+			}
+		}
+	}
 }
 
 /* FIN FUNCIONES DE ARCHIVOS */
