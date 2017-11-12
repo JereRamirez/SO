@@ -14,43 +14,55 @@
 #include <Shared/sockets.h>
 #include <Shared/protocolosNew.h>
 
-char host[20];
-char port[20];
+t_config* config = NULL;
+t_log* logger = NULL;
+t_list* tabla;
 
+void levantarConfig(int32_t *puertoYama, int32_t *handshakeYama,char* ipYama)
+{
+	config = config_create("master.config");
+	if (config == NULL) {
+		log_error(logger,"Nunca encontre el archivo de config");
+		exit(2);
+	}
+
+	*puertoYama = config_has_property(config,"PUERTO_YAMA")?config_get_int_value(config,"PUERTO_YAMA"):-1;
+	*handshakeYama = config_has_property(config,"HANDSHAKE_YAMA")?config_get_int_value(config,"HANDSHAKE_YAMA"):-1;
+	*ipYama = config_has_property(config,"IP_YAMA")?config_get_string_value(config,"IP_YAMA"):-1;
+}
+
+void levantarLog()
+{
+	logger = log_create("master.log","MASTER",0,LOG_LEVEL_TRACE);
+}
 int main(int argc, char *argv[]) {
+	char * pathTransformador;
+	char * pathReductor;
+	char * yamaFs;
+	char * pathResultado;
+	int32_t puertoYama;
+	int32_t handshakeYama;
+	char* ipÝama;
+	/*inicializacion*/
 	/********************************************/
-	if (argc < 3){
-    printf("Ingrese IP a conectarse: ");
-    scanf("%s",host);
-	printf("Ingrese puerto a conectarse: ");
-    scanf("%s",port);
+	levantarLog();
+	levantarConfig(&puertoYama,&handshakeYama,&ipÝama);
+	/********************************************/
+
+	/********************************************/
+	if (argc == 5){
+		strcpy(pathTransformador, argv[1]);
+		strcpy(pathReductor, argv[2]);
+		strcpy(yamaFs, argv[3]);
+		strcpy(pathResultado, argv[4]);
 	}
-	else{
-	strcpy(host,argv[1]);
-	strcpy(port,argv[2]);
+	else
+	{
+		log_error(logger,"La cantidad de parametros no es la correcta para inicializar master");
+		exit(2);
 	}
 	/********************************************/
 
-	int socket;
-
-	socket = conectarse_a_yama(host, port);
-
-	//enviar_archivo(socket, "pusheen-sleeping.jpg");
-
-	t_protocolo_almacenamiento_worker* p = recibir_paquete(socket);
-
-	//printf("El ip que me mandaron es: %s\n", strtok(p->ip_port_worker, ":"));
-	//printf("El puerto que me mandaron es: %s\n", strtok(NULL, ":"));
-	//printf("El nodo que me mandaron es: %d\n", p->nodo);
-	//printf("El bloque que me mandaron es: %d\n", p->bloque);
-	//printf("Los bytes ocupados son: %ld\n", p->bytes_ocupados);
-	//printf("La ruta del archivo es: %s\n", p->archivo_temporal);
-	//printf("La ruta del archivo es: %s\n", p->archivo_transformacion);
-	//printf("La ruta del archivo es: %s\n", p->archivo_reduccion_local);
-	printf("La ruta del archivo es: %s\n", p->archivo_reduccion_global);
-	//printf("El encargado que me mandaron es: %d\n", p->encargado);
-
-	printf("Graciaaaaaaaaaaaas\n");
 
 	return EXIT_SUCCESS;
 }
