@@ -31,6 +31,43 @@ char etapaTransformacion(int32_t block, int bOcupados, char file){
  return(estado);
 }
 
+char etapaReduLocal(void REDUCTOR(char* file, char new),char path,char newFile){
+	char estado = 'FAIL';
+	int auxestado = 0;
+
+	auxestado = REDUCTOR(path, newFile); //idem etapa transformación, supongo resultados
+	if(auxestado == 1){
+		estado = 'OK';
+	}
+return estado;
+//El MASTER debería tener un contador de Workers a los que le pidio realizar la Reducción e ir restado ese contador
+//cada vez que recibe una confirmación de éxito.
+}
+
+//Ver como me pasa la lista de Workers y sus archivos para los dos parametros de la funcion que faltan
+char etapaReduGlobal(void REDUCTOR(char* file, char newFile), ,){
+	char estado = 'FAIL';
+	int contaux = 0;
+
+	while(listaWorkers != NULL){
+		//ver como me conecto con cada worker para realizar el reductor en su archivo
+		REDUCTOR(fileWorkers, newFile);
+		contaux++;
+	}
+	if(contaux == cantWorkers){
+		estado = 'OK';
+	}
+
+return estado;
+}
+
+char etapaAlmFinal(char* fileGlobal, char newFile){
+	char estado = 'FAIL';
+//Ver como me conecto al FileSystem para enviarle el contendio del fileGlobal (primero tengo que crear el nuevo archivo y recien ahi se lo paso al FS?)
+//depende como haga el proceso, cambio estado a OK en caso de salir correcto.
+return estado;
+}
+
 int main(int argc, char *argv[]) {
 	/********************************************/
 	if (argc < 2){
