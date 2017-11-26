@@ -14,16 +14,17 @@
 #include <Shared/clientes.h>
 #include <Shared/sockets.h>
 #include <Shared/protocolosNew.h>
-#include "sockets.h"
+#include "libConexion.h"
+
 
 t_config* config = NULL;
 t_log* logger = NULL;
 t_list* tabla;
 
-char etapaTransformacion(char IP, char port, int block, char newFileName){
+char etapaTransformacion(char *ip_worker, int32_t puerto_worker, int block, char newFileName, int32_t* hs_ms){
 	char resultado = 'FAIL';
 
-	int crearSocketCliente(char* IP, char* port);
+	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
 //ACA ME CONECTO CON EL WORKER Y LE MANDO: el TRANSFORMADOR, bloque en el cual debe hacer la transformacion, bytes ocupados en el bloque y newFileName
 	//recibo el resultado del Worker y lo meto en resultado para devolverselo a YAMA
 return resultado;
