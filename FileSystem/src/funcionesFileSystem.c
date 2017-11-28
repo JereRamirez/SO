@@ -367,7 +367,11 @@ void copiarTo(char* origen, char* destino){
 	if(origen == NULL || destino == NULL){
 		printf("Falta especificar origen o destino del archivo\n");
 	}else{
-		printf("Copiando archivo: %s a: %s \n", origen, destino);
+		if(copiarArchivoDeFsALocal(origen, destino) < 0){
+			puts("No se pudo copiar el archivo al filesystem local");
+		}else{
+			puts("Archivo copiado exitosamente");
+		}
 	}
 }
 
@@ -383,8 +387,28 @@ void mostrarMD5(char* archivo){
 	if(archivo == NULL){
 		printf("Falta especificar el archivo\n");
 	}else{
-		printf("Mostrando MD5 de: %s \n", archivo);
-		system("md5sum /home/utnso/prueba.txt");
+		int rs = copiarArchivoDeFsALocal(archivo, TEMP);
+		if(rs > 0){
+			char* aux = string_new();
+			string_append(&aux, TEMP);
+			string_append(&aux, basename(string_duplicate(archivo)));
+			char* comando = string_new();
+			string_append(&comando, string_from_format("md5sum %s", aux));
+			FILE *ls = popen(comando, "r");
+			char buf[256];
+			char** stringAux;
+			while (fgets(buf, sizeof(buf), ls) != 0) {
+				stringAux = string_split(buf, " ");
+				printf("%s\n", stringAux[0]);
+			}
+			pclose(ls);
+			remove(aux);
+			destroySplit(stringAux);
+			freeNull(aux);
+			freeNull(comando);
+		}else{
+			puts("No se pudo obtener el MD5 del archivo");
+		}
 	}
 }
 
@@ -530,6 +554,74 @@ t_list* partirArchivoEnBloques(char* archivo) {
 
 }
 
+int copiarArchivoDeFsALocal(char* pathYamaFs, char* pathFsLocal){
+	t_archivo* archivo = buscarArchivoPorNombreAbsoluto(pathYamaFs);
+	if(archivo == NULL){
+		return -1;
+	}
+
+	char* nuevoArchivo = string_new();
+	string_append(&nuevoArchivo, pathFsLocal);
+	string_append(&nuevoArchivo, archivo->info->nombre);
+	limpiarArchivo(nuevoArchivo);
+	FILE* file = txt_open_for_append(nuevoArchivo);
+
+	int numero_bloque;
+	char* datos_bloque;
+	for (numero_bloque = 0; numero_bloque < archivo->info->cantBloques; numero_bloque++) {
+
+		datos_bloque = getBloqueArchivo(archivo, numero_bloque);
+		if(datos_bloque != NULL){
+
+			txt_write_in_file(file, datos_bloque);
+			freeNull(datos_bloque);
+		}else{
+			txt_close_file(file);
+			return -1;
+		}
+	}
+
+	printf("Creado archivo nuevo: %s\n", nuevoArchivo);
+
+	txt_close_file(file);
+
+	freeNull(nuevoArchivo);
+
+	return 1;
+}
+
+char* getBloqueArchivo(t_archivo* archivo, int numeroBloque){
+	t_archivo_bloque* block = buscarBloqueArchivo(archivo, numeroBloque);
+	t_archivo_nodo_bloque* nb = NULL;
+	char* datosBloque = malloc(TAMANIO_BLOQUE);
+	int i;
+	for (i = 0; i < list_size(block->nodosBloque); i++) {
+
+		nb = list_get(block->nodosBloque, i);
+
+		t_nodo* nodo = buscarNodoPorNombre(nb->info->nombre);
+		if(nodo != NULL){
+			if(nodoEstaConectado(nodo)){
+				enviarHeader(nodo->fd, GETBLOQUE);
+				enviarInt(nodo->fd, nb->numeroBloque);
+				//datosBloque = recibirString(nodo->fd);
+				recv(nodo->fd, datosBloque, TAMANIO_BLOQUE, MSG_WAITALL);
+				char* bloqueAux = string_substring_until(datosBloque ,block->tamanio);
+				return bloqueAux;
+				break;
+
+			}else{
+				marcarNodoComoDesconectado(nodo);
+			}
+		}
+	}
+
+	archivo->info->disponible = false;
+
+	return NULL;
+}
+
+
 void iniciarServer(void* arg){
 
 	multiplexar((char*)arg,(void*)procesarMensaje);
@@ -605,6 +697,10 @@ void printInfoNodo(t_nodo* nodo){
 		printf("Estado: desconectado\n");
 	}
 	printf("El tamaño del bitmap del nodo es: %d\n", nodo->cantBloques);
+}
+
+bool nodoEstaConectado(t_nodo* nodo){
+	return true;
 }
 
 t_bitmap* crearBitmap(u_int32_t tamanio) {
@@ -778,6 +874,10 @@ t_nodo* buscarNodoPorNombre(char* nombre){
 		return nodo->info->nombre == nombre;
 	}
 	return list_find(filesystem.nodos, (void*) _buscar_nodo_por_nombre);
+}
+
+void marcarNodoComoDesconectado(t_nodo* nodo){
+	nodo->conectado = false;
 }
 
 void marcarBloqueComoUsado(char* nombre, int numeroBloque){

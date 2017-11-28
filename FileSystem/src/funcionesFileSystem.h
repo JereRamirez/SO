@@ -44,6 +44,7 @@
 #define FILE_NODOS "metadata/nodos.bin"
 #define DIRECTORIO_ARCHIVOS "metadata/archivos/"
 #define DIRECTORIO_BITMAPS "metadata/bitmaps/"
+#define TEMP "metadata/"
 
 t_log* logger;
 
@@ -146,9 +147,9 @@ void mover(char* ubicacionVieja, char* ubicacionNueva); //DONE
 void mostrarContenidoArchivo(char* archivo);
 void crearDirectorio(char* directorio); //DONE
 void copiarFrom(char* origen, char* destino, char* tipo); //DONE
-void copiarTo(char* origen, char* destino);
+void copiarTo(char* origen, char* destino); //DONE
 void copiarBloqueANodo(char* archivo, char* bloque, char* nodo);
-void mostrarMD5(char* archivo);
+void mostrarMD5(char* archivo); //DONE
 void mostrarArchivosDelDirectorio(char* directorio); //DONE
 void mostrarInfoArchivo(char* archivo); //DONE
 
@@ -160,6 +161,7 @@ t_archivo_bloque* crearBloqueArchivo(int numero, int tamanio);
 t_archivo_nodo_bloque* crearArchivoNodoBloque();
 void destruirArchivoNodoBloque(t_archivo_nodo_bloque* anb1);
 t_archivo_bloque* buscarBloqueArchivo(t_archivo* archivo, int numeroBloque);
+char* getBloqueArchivo(t_archivo* archivo, int numeroBloque);
 void mostrarInfoCompletaArchivo(t_archivo* archivo);
 void mostrarBloquesArchivo(t_list* bloques_de_datos);
 void printInfoArchivo(t_archivo_info* info);
@@ -198,6 +200,8 @@ int cantBloquesNecesarios(char* archivo);
 int lenHastaEnter(char* strings);
 int procesarMensaje(int fd);
 t_nodo* crearNodo(int fd, char* nombre, char* ipNodo, char* puerto, u_int32_t tamanioData);
+void marcarNodoComoDesconectado(t_nodo* nodo);
+bool nodoEstaConectado(t_nodo* nodo);
 int recibirInfoNodo(int fd);
 t_bitmap* crearBitmap(u_int32_t tamanio);
 void printInfoNodo(t_nodo* nodo);
@@ -214,6 +218,7 @@ int cantTotalBloquesFs();
 int cantBloquesLibresFs();
 int cantBloquesLibresNodo(t_nodo* nodo);
 int copiarArchivoLocalAlFs(char* nombre, char* tipo, int dirPadre);
+int copiarArchivoDeFsALocal(char* pathYamaFs, char* pathFsLocal);
 void marcarBloqueComoUsado(char* nombre, int numeroBloque);
 void marcarBloqueComoLibre(char* nombre, int numeroBloque);
 int guardarBloque(char* data, size_t tamanio, t_archivo_bloque* ab);
