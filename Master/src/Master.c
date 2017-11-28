@@ -21,21 +21,58 @@ t_config* config = NULL;
 t_log* logger = NULL;
 t_list* tabla;
 
-char etapaTransformacion(char *ip_worker, int32_t puerto_worker, int block, char newFileName, int32_t* hs_ms){
+void devolverDireccion(char* rutina,void* data,int* dimension){
+		FILE* archivo = fopen(rutina,"r");
+		fseek(archivo,0,SEEK_END);
+		dimension = ftell(archivo);
+		fseek(archivo,0,SEEK_SET);
+		data = malloc(dimension);
+		fread(data,1,dimension,archivo);
+		fclose(archivo);
+}
+
+//ACA ME CONECTO CON EL WORKER Y LE MANDO: el TRANSFORMADOR, bloque en el cual debe hacer la transformacion, bytes ocupados en el bloque y newFileName
+//recibo el resultado del Worker y se lo informo a YAMA
+char etapaTransformacion(char *ip_worker, int32_t puerto_worker, int block, char newTempFileName, int32_t *hs_ms, int32_t bytesOcupados, int32_t socketWorker){
 	char resultado = 'FAIL';
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
-//ACA ME CONECTO CON EL WORKER Y LE MANDO: el TRANSFORMADOR, bloque en el cual debe hacer la transformacion, bytes ocupados en el bloque y newFileName
-	//recibo el resultado del Worker y lo meto en resultado para devolverselo a YAMA
-return resultado;
+
+	void* data = NULL;
+	int dimension = 0;
+
+	devolverDireccion("transformador",data,dimension);
+
+	enviar_todo(socketWorker,data,dimension,logger);
+	enviar(socketWorker,block,sizeof(int),logger);
+	enviar(socketWorker,bytesOcupados,sizeof(int32_t),logger);
+	enviar(socketWorker,newTempFileName,sizeof(char),logger);
+	enviar(socketWorker,&resultado,sizeof(char),logger); //Le paso la direccion de resultado porque hago el control directamente en el worker.
+
+	return resultado;
 }
 
-char etapaReduccionLocal(char IP, char port, char tempFiles, char newFileName){
-	char resultado = 'FAIL';
 //ACA ME CONECTO CON EL WORKER Y LE MANDO: el REDUCTOR, lista de archivos temporales del Nodo newFileName
-	//recibo el resultado del Worker y lo meto en resultado para devolverselo a YAMA
-//por cada hilo que creo, voy llevando un contador que se va restando cada vez que termina con exito un resultado
-return resultado;
+	//recibo el resultado del Worker y se lo informo a YAMA
+//por cada hilo que creo(por nodo), voy llevando un contador que se va restando cada vez que termina con exito un resultado
+char etapaReduccionLocal(char *ip_worker, int32_t puerto_worker, char tempFile, char newFileName, int* contador, int32_t socketWorker){
+	char resultado = 'FAIL';
+
+	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
+
+	void* data = NULL;
+	int dimension = 0;
+
+	devolverDireccion("reductor",data,dimension);
+
+	enviar_todo(socketWorker,data,dimension,logger);
+	enviar(socketWorker,tempFile,sizeof(char),logger);
+	enviar(socketWorker,&resultado,sizeof(char),logger); //Le paso la direccion de resultado porque hago el control directamente en el worker.
+
+	if(resultado == 'OK')
+		contador--;
+
+	return resultado;
 }
 
 char etapaReduccionGlobal(char IP, char port, char listaWorkers, char tempListFiles){
