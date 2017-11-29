@@ -377,9 +377,13 @@ void copiarTo(char* origen, char* destino){
 
 void copiarBloqueANodo(char* archivo, char* bloque, char* nodo){
 	if(archivo == NULL || bloque == NULL || nodo == NULL){
-		printf("Falta especificar archivo,bloque o nodo\n");
+		printf("Falta especificar archivo, bloque o nodo\n");
 	}else{
-		printf("Copiando bloque: %s del archivo: %s al nodo: %s \n", bloque, archivo,nodo);
+          if(copiarBloque(archivo, atoi(bloque), nodo) < 0){
+        	  puts("No se pudo copiar el bloque en el nodo especificado");
+          }else{
+        	  puts("El bloque fue copiado con éxito");
+          }
 	}
 }
 
@@ -604,7 +608,6 @@ char* getBloqueArchivo(t_archivo* archivo, int numeroBloque){
 			if(nodoEstaConectado(nodo)){
 				enviarHeader(nodo->fd, GETBLOQUE);
 				enviarInt(nodo->fd, nb->numeroBloque);
-				//datosBloque = recibirString(nodo->fd);
 				recv(nodo->fd, datosBloque, TAMANIO_BLOQUE, MSG_WAITALL);
 				char* bloqueAux = string_substring_until(datosBloque ,block->tamanio);
 				return bloqueAux;
@@ -621,6 +624,29 @@ char* getBloqueArchivo(t_archivo* archivo, int numeroBloque){
 	return NULL;
 }
 
+int copiarBloque(char* archivo, int numBloque, char* nodo){
+	t_nodo* nodoAux = buscarNodoPorNombre(nodo);
+	t_archivo* arch = buscarArchivoPorNombreAbsoluto(archivo);
+	if(nodoAux != NULL && arch != NULL){
+		char* bloque = getBloqueArchivo(arch, numBloque);
+		if(bloque != NULL){
+			int bloqueLibre = getBloqueLibreNodo(nodoAux);
+			if(bloqueLibre != -1 && nodoEstaConectado(nodoAux)){
+				enviarHeader(nodoAux->fd, SETBLOQUE);
+				enviarInt(nodoAux->fd, bloqueLibre);
+				enviarString(nodoAux->fd, bloque);
+				freeNull(bloque);
+			}else{
+				return -1;
+			}
+		}else{
+			return -1;
+		}
+	}else{
+		return -1;
+	}
+	return 1;
+}
 
 void iniciarServer(void* arg){
 
@@ -629,7 +655,7 @@ void iniciarServer(void* arg){
 }
 
 int procesarMensaje(int fd){
-	u_int32_t header = recibirHeader(fd);
+	int32_t header = recibirHeader(fd);
 	if (header <= 0){
 		return -1;
 	}
@@ -645,9 +671,9 @@ int procesarMensaje(int fd){
 
 int recibirInfoNodo(int fd){
 
-	u_int32_t cantBloquesData = recibirInt(fd);
+	int32_t cantBloquesData = recibirInt(fd);
 	char* nombre = recibirString(fd);
-	u_int32_t puerto = recibirInt(fd);
+	int32_t puerto = recibirInt(fd);
 
 	if(puerto <= 0 || nombre == NULL || cantBloquesData <= 0){
 		return -1;
@@ -672,7 +698,7 @@ void crearFilesystem(){
 	filesystem.archivos = list_create();
 }
 
-t_nodo* crearNodo(int fd, char* nombre, char* ipNodo, char* puerto, u_int32_t tamanioData){
+t_nodo* crearNodo(int fd, char* nombre, char* ipNodo, char* puerto, int32_t tamanioData){
 	t_nodo* nodo = malloc(sizeof(t_nodo));
 	nodo->info = malloc(sizeof(t_nodo_info));
 	nodo->info->nombre = string_duplicate(nombre);
@@ -787,7 +813,7 @@ t_archivo_nodo_bloque* crearArchivoNodoBloque(){
 }
 
 int getBloqueLibreNodo(t_nodo* nodo){
-	int pos;
+	int pos = -1;
 	int i = 0;
 	bool encontrado = false;
 	while(!encontrado && (i < nodo->cantBloques)){

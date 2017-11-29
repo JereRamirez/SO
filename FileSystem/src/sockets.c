@@ -155,11 +155,11 @@ void multiplexar(char * puerto, int (*procesar_mensaje)(int)) {
 	}
 }
 
-int enviarHeader(int fd, u_int32_t header){
+int enviarHeader(int fd, int32_t header){
 	return enviarInt(fd, header);
 }
 
-u_int32_t recibirHeader(int fd){
+int32_t recibirHeader(int fd){
 	return recibirInt(fd);
 }
 
@@ -215,13 +215,13 @@ char* recibirString(int fd) {
 	return buffer;
 }
 
-int enviarInt(int fd, u_int32_t numero){
-	return (send(fd, &numero, sizeof(u_int32_t),MSG_NOSIGNAL));
+int enviarInt(int fd, int32_t numero){
+	return (send(fd, &numero, sizeof(int32_t),MSG_NOSIGNAL));
 }
 
-u_int32_t recibirInt(int fd){
-	u_int32_t numero = 0;
-	if(recv(fd, &numero, sizeof(u_int32_t),MSG_WAITALL) < 0){
+int32_t recibirInt(int fd){
+	int32_t numero = 0;
+	if(recv(fd, &numero, sizeof(int32_t),MSG_WAITALL) < 0){
 		perror("Error al recibir numero");
 		return -1;
 	}

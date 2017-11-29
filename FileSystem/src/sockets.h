@@ -33,11 +33,11 @@ void multiplexar(char * puerto, int (*procesar_mensaje)(int));
 
 /* Funciones para mandar/recibir mensajes */
 
-int enviarHeader(int fd, u_int32_t header);
-u_int32_t recibirHeader(int fd);
+int enviarHeader(int fd, int32_t header);
+int32_t recibirHeader(int fd);
 int enviarString(int fd ,char* mensaje);
 char* recibirString(int fd);
-int enviarInt(int fd, u_int32_t numero);
-u_int32_t recibirInt(int fd);
+int enviarInt(int fd, int32_t numero);
+int32_t recibirInt(int fd);
 
 #endif /* SOCKETS_H_ */
