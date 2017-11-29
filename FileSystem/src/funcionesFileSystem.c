@@ -21,7 +21,7 @@ void iniciarFilesystemLimpio(){
 
 	crearFilesystem();
 
-	formatearDirectorios();
+	borrarBackup();
 
 	crearServer(PUERTO);
 
@@ -34,6 +34,8 @@ void iniciarFilesystemConBackUp(){
 
 	crearFilesystem();
 
+	filesystem.inicioConBackUp = true;
+
 	cargarBackUp();
 
 	crearServer(PUERTO);
@@ -45,7 +47,40 @@ void iniciarFilesystemConBackUp(){
 }
 
 void cargarBackUp(){
-	return;
+
+}
+
+void borrarBackup(){
+
+	DIR* dir = opendir("metadata");
+	if (dir)
+	{
+		/* Directorio existe */
+
+		system("exec rm -r metadata");
+		crearDirectorioMetadata();
+	}
+	else if (ENOENT == errno)
+	{
+		/* Directorio no existe */
+
+		crearDirectorioMetadata();
+	}
+
+}
+
+void formatearFilesystem(){
+
+	formatearDirectorios();
+	formatearNodos();
+	if(!filesystem.inicioConBackUp){
+		filesystem.estadoSeguro = true;}
+}
+
+void crearDirectorioMetadata(){
+	mkdir("metadata/", 0777);
+	mkdir(DIRECTORIO_ARCHIVOS, 0777);
+	mkdir(DIRECTORIO_BITMAPS, 0777);
 }
 
 /* FIN FUNCIONES PRINCIPALES */
@@ -391,10 +426,10 @@ void mostrarMD5(char* archivo){
 	if(archivo == NULL){
 		printf("Falta especificar el archivo\n");
 	}else{
-		int rs = copiarArchivoDeFsALocal(archivo, TEMP);
+		int rs = copiarArchivoDeFsALocal(archivo, DIRECTORIO_METADATA);
 		if(rs > 0){
 			char* aux = string_new();
-			string_append(&aux, TEMP);
+			string_append(&aux, DIRECTORIO_METADATA);
 			string_append(&aux, basename(string_duplicate(archivo)));
 			char* comando = string_new();
 			string_append(&comando, string_from_format("md5sum %s", aux));
@@ -696,6 +731,8 @@ void crearFilesystem(){
 	filesystem.nodos = list_create();
 	filesystem.directorios = list_create();
 	filesystem.archivos = list_create();
+	filesystem.estadoSeguro = false;
+	filesystem.inicioConBackUp = false;
 }
 
 t_nodo* crearNodo(int fd, char* nombre, char* ipNodo, char* puerto, int32_t tamanioData){
@@ -921,6 +958,10 @@ int guardarBloque(char* data, size_t tamanio, t_archivo_bloque* ab){
 	memcpy(bloque, data, tamanio);
 	bloque[tamanio] = '\0';
 	return enviarBloqueANodos(ab, bloque);
+}
+
+void formatearNodos(){
+	persistirNodos();
 }
 
 void persistirNodos(){

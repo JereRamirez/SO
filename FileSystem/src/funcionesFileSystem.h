@@ -44,7 +44,7 @@
 #define FILE_NODOS "metadata/nodos.bin"
 #define DIRECTORIO_ARCHIVOS "metadata/archivos/"
 #define DIRECTORIO_BITMAPS "metadata/bitmaps/"
-#define TEMP "metadata/"
+#define DIRECTORIO_METADATA "metadata/"
 
 t_log* logger;
 
@@ -61,6 +61,8 @@ typedef struct {
 	t_list* nodos;
 	t_list* directorios;
 	t_list* archivos;
+	bool estadoSeguro;
+	bool inicioConBackUp;
 } t_filesystem;
 
 t_filesystem filesystem;
@@ -133,8 +135,11 @@ void crearFilesystem();
 void iniciarFilesystemLimpio();
 void iniciarFilesystemConBackUp();
 void cargarBackUp();
+void borrarBackup();
+void formatearFilesystem();
 void crearServer(char* puerto);
 void iniciarServer(void* arg);
+void crearDirectorioMetadata();
 
 /* FUNCIONES CONSOLA */
 
@@ -214,6 +219,7 @@ int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque);
 t_nodo* buscarNodoPorNombre(char* nombre);
 void persistirNodos();
 void persistirBitmaps();
+void formatearNodos();
 int getBloqueLibreNodo(t_nodo* nodo);
 int cantTotalBloquesFs();
 int cantBloquesLibresFs();
