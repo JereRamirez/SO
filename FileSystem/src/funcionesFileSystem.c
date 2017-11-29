@@ -47,7 +47,9 @@ void iniciarFilesystemConBackUp(){
 }
 
 void cargarBackUp(){
-
+   cargarDirectorios();
+   cargarNodos();
+   cargarArchivos();
 }
 
 void borrarBackup(){
@@ -78,7 +80,7 @@ void formatearFilesystem(){
 }
 
 void crearDirectorioMetadata(){
-	mkdir("metadata/", 0777);
+	mkdir(DIRECTORIO_METADATA, 0777);
 	mkdir(DIRECTORIO_ARCHIVOS, 0777);
 	mkdir(DIRECTORIO_BITMAPS, 0777);
 }
@@ -182,6 +184,16 @@ void destroySplit(char** split){
 
 	freeNull(split);
 }
+
+int splitCount(char** split){
+	int i = 0;
+	while (split[i] != NULL) {
+		i++;
+	}
+
+	return i;
+}
+
 
 /* FIN FUNCIONES AUXILIARES */
 
@@ -718,7 +730,7 @@ int recibirInfoNodo(int fd){
 		puts("Error al obtener IP del Nodo");
 		return -1;
 	}
-	t_nodo* nodo = crearNodo(fd, nombre, ipNodo, string_itoa(puerto), cantBloquesData);
+	t_nodo* nodo = crearNodoNuevo(fd, nombre, ipNodo, string_itoa(puerto), cantBloquesData);
 	list_add(filesystem.nodos, nodo);
 	printInfoNodo(nodo);
 	enviarInt(fd, HANDSHAKE_OK);
@@ -735,7 +747,7 @@ void crearFilesystem(){
 	filesystem.inicioConBackUp = false;
 }
 
-t_nodo* crearNodo(int fd, char* nombre, char* ipNodo, char* puerto, int32_t tamanioData){
+t_nodo* crearNodoNuevo(int fd, char* nombre, char* ipNodo, char* puerto, int32_t tamanioData){
 	t_nodo* nodo = malloc(sizeof(t_nodo));
 	nodo->info = malloc(sizeof(t_nodo_info));
 	nodo->info->nombre = string_duplicate(nombre);
@@ -743,6 +755,19 @@ t_nodo* crearNodo(int fd, char* nombre, char* ipNodo, char* puerto, int32_t tama
 	nodo->info->puerto = string_duplicate(puerto);
 	nodo->fd = fd;
 	nodo->conectado = true;
+	nodo->bloques = crearBitmap(tamanioData);
+	nodo->cantBloques = tamanioData;
+	return nodo;
+}
+
+t_nodo* crearNodoViejo(char* nombre, int32_t tamanioData, int32_t cantBloquesLibres){
+	t_nodo* nodo = malloc(sizeof(t_nodo));
+	nodo->info = malloc(sizeof(t_nodo_info));
+	nodo->info->nombre = string_duplicate(nombre);
+	nodo->info->ip = NULL;
+	nodo->info->puerto = NULL;
+	nodo->fd = -1;
+	nodo->conectado = false;
 	nodo->bloques = crearBitmap(tamanioData);
 	nodo->cantBloques = tamanioData;
 	return nodo;
@@ -766,7 +791,7 @@ bool nodoEstaConectado(t_nodo* nodo){
 	return true;
 }
 
-t_bitmap* crearBitmap(u_int32_t tamanio) {
+t_bitmap* crearBitmap(int32_t tamanio) {
 	t_bitmap* bitmap = malloc(sizeof(t_bitmap) * tamanio);
 	int i;
 	for(i=0; i < tamanio; i++){
@@ -948,6 +973,13 @@ void marcarBloqueComoUsado(char* nombre, int numeroBloque){
 	nodo->bloques[numeroBloque].ocupado = 1;
 }
 
+void marcarNBloquesComoOcupados(t_nodo* nodo, int cantBloques){
+	int i;
+	for(i = 0; i < cantBloques; i++){
+		nodo->bloques[i].ocupado = 1;
+	}
+}
+
 void marcarBloqueComoLibre(char* nombre, int numeroBloque){
 	t_nodo* nodo = buscarNodoPorNombre(nombre);
 	nodo->bloques[numeroBloque].ocupado = 0;
@@ -1001,6 +1033,32 @@ void persistirNodos(){
 	freeNull(nodosAux);
 	txt_close_file(file);
 	persistirBitmaps();
+}
+
+void cargarNodos(){
+	t_config* archNodos = config_create(FILE_NODOS);
+	char** nodos = config_get_array_value(archNodos, "NODOS");
+	int cantNodos = splitCount(nodos);
+	int i;
+	for(i = 0; i < cantNodos; i++){
+		char* nombre = nodos[i];
+		char* aux = string_new();
+		string_append(&aux, nombre);
+		string_append(&aux, "Total");
+		int cantBloques = config_get_int_value(archNodos, aux);
+		char* aux2 = string_new();
+		string_append(&aux2, nombre);
+		string_append(&aux2, "Libre");
+		int cantBloquesLibres = config_get_int_value(archNodos, aux2);
+		t_nodo* nodo = crearNodoViejo(nombre, cantBloques, cantBloquesLibres);
+		marcarNBloquesComoOcupados(nodo, cantBloques - cantBloquesLibres);
+		list_add(filesystem.nodos, nodo);
+		freeNull(nombre);
+		freeNull(aux);
+		freeNull(aux2);
+	}
+	config_destroy(archNodos);
+	destroySplit(nodos);
 }
 
 void persistirBitmaps(){
@@ -1197,6 +1255,10 @@ void persistirArchivo(t_archivo* archivo, char* path){
 	txt_close_file(file);
 	freeNull(tamanio);
 	freeNull(tipo);
+}
+
+void cargarArchivos(){
+
 }
 
 char* getPathMetadataArchivo(t_archivo* archivo){
@@ -1410,6 +1472,23 @@ void formatearDirectorios() {
 
 	desmapearArchivo(map, FILE_DIRECTORIO);
 
+}
+
+void cargarDirectorios(){
+	char* map = mapearArchivo(FILE_DIRECTORIO);
+	t_directorio* dir;
+	dir = malloc(sizeof *dir);
+	int i = 0;
+	for (i = 0; i < DIR_CANT_MAX; i++) {
+
+		dir = memcpy(dir, map + (i * sizeof(t_directorio)),	sizeof(t_directorio));
+		if (dir->index != 0) {
+			list_add(filesystem.directorios, (void*) dir);
+			dir = malloc(sizeof *dir);
+		}
+	}
+	freeNull(dir);
+	desmapearArchivo(map, FILE_DIRECTORIO);
 }
 
 bool existeDirectorio(char* nombre, int padre) {
