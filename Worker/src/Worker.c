@@ -17,9 +17,18 @@ char port[20];
 
 /*En la etapa de Transformacion, c/ hijo de master se conecta al Worker e indica en que bloques emplear la Transformacion, cant de bytes ocupados en ese bloque y en que archivo guardar el resultado
 Al terminar el proceso, Worker devuelve confirmacion del resultado*/
-char etapaTransformacion(int32_t block, int bOcupados, char file){
- char estado = 'FRACASO';
- int auxestado = 0;
+char etapaTransformacion(int32_t puerto, int32_t cantidadConexiones, int32_t socketMaster){
+
+
+ 	 int32_t socketWorker = servidor(puerto, cantidadConexiones,logger);
+
+
+
+ 	int32_t bytesTransformador = recibir_todo(socketMaster,data,dimension,logger);
+ 	int32_t bytesBloque = recibir(socketMaster,block,sizeof(int),logger);
+ 	int32_t bytesOcupados = recibir(socketMaster,bytesOcupados,sizeof(int32_t),logger);
+ 	int32_t bytesNewTemporal= recibir(socketMaster,newTempFileName,sizeof(char),logger);
+ 	int32_t bytesResultado = recibir(socketMaster,&resultado,sizeof(char),logger);
 
  //Hay que ver que devuelve la funcion que nos da la catedra si no se ejecuta con exitol, PARA EMPEZAR SUPONGO que recibe el bloque donde ejecutar la transformacion, donde guardar el resultado y devuelve 0 en caso de fracaso o 1 en exito
  auxestado = TRANSFORMADOR(block,file);

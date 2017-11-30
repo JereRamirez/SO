@@ -52,7 +52,10 @@ char etapaTransformacion(char *ip_worker, int32_t puerto_worker, int block, char
 	return resultado;
 }
 
-//ACA ME CONECTO CON EL WORKER Y LE MANDO: el REDUCTOR, lista de archivos temporales del Nodo newFileName
+//Cuando en un Nodo se ejecutaron todas las operaciones de Transformación,
+//inmediatamente pasará a la Etapa de Reducción Local.(ver de poner un contador por cada hilo)
+
+//ACA ME CONECTO CON EL WORKER Y LE MANDO: el REDUCTOR, lista de archivos temporales del Nodo, nombre del nuevo archivo a crear. (ver cuando terminen yama como obtengo los datos de cada worker
 	//recibo el resultado del Worker y se lo informo a YAMA
 //por cada hilo que creo(por nodo), voy llevando un contador que se va restando cada vez que termina con exito un resultado
 char etapaReduccionLocal(char *ip_worker, int32_t puerto_worker, char tempFile, char newFileName, int* contador, int32_t socketWorker){
@@ -67,6 +70,7 @@ char etapaReduccionLocal(char *ip_worker, int32_t puerto_worker, char tempFile, 
 
 	enviar_todo(socketWorker,data,dimension,logger);
 	enviar(socketWorker,tempFile,sizeof(char),logger);
+	enviar(socketWorker,newFileName,sizeof(char),logger);
 	enviar(socketWorker,&resultado,sizeof(char),logger); //Le paso la direccion de resultado porque hago el control directamente en el worker.
 
 	if(resultado == 'OK')
@@ -75,18 +79,29 @@ char etapaReduccionLocal(char *ip_worker, int32_t puerto_worker, char tempFile, 
 	return resultado;
 }
 
-char etapaReduccionGlobal(char IP, char port, char listaWorkers, char tempListFiles){
+//ACA ME CONECTO CON EL WORKER ENCARGADO Y LE MANDO: el REDUCTOR, una lista/estructura de los workers con sus IPs y puertos, lista de archivos temporales de Reduccion Local, ruta donde guardar el resultado
+	//recibo el resultado del Worker y se lo informo a YAMA
+char etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker, int32_t socketWorker, char listaWorkers, char tempListFiles){
 	char resultado = 'FAIL';
-//ACA ME CONECTO CON EL WORKER ENCARGADO Y LE MANDO: el REDUCTOR, una lista/estructura de los workers con sus IPs y puertos, lista de archivos temporales de Reduccion Local
-	//recibo el resultado del Worker y lo meto en resultado para devolverselo a YAMA
+
+	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
+
+	void* data = NULL;
+	int dimension = 0;
+
+	devolverDireccion("reductor",data,dimension);
+
+	enviar_todo(socketWorker,data,dimension,logger);
 
 return resultado;
 }
 
-char etapaAlmacenadoFinal(char IP, char port, char ReduGlobalFileName){
-	char resultado = 'FAIL';
 //ACA ME CONECTO CON EL WORKER ENCARGADO Y SOLICITo: que se conecte al filesystem y le envie el contenido del archivo de Reduccion Global y el nombre y ruta que este debera tener.
-	//recibo el resultado del Worker y lo meto en resultado para devolverselo a YAMA
+	//recibo el resultado del Worker y se lo informo a YAMA
+char etapaAlmacenadoFinal(char *ip_worker, int32_t puerto_worker, int32_t socketWorker){
+	char resultado = 'FAIL';
+
+	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
 
 return resultado;
 }
