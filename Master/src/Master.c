@@ -21,7 +21,7 @@ t_config* config = NULL;
 t_log* logger = NULL;
 t_list* tabla;
 
-void devolverDireccion(char* rutina,void* data,int* dimension){
+void devolverDireccion(char* rutina,void* data,int32_t* dimension){
 		FILE* archivo = fopen(rutina,"r");
 		fseek(archivo,0,SEEK_END);
 		dimension = ftell(archivo);
@@ -33,23 +33,29 @@ void devolverDireccion(char* rutina,void* data,int* dimension){
 
 //ACA ME CONECTO CON EL WORKER Y LE MANDO: el TRANSFORMADOR, bloque en el cual debe hacer la transformacion, bytes ocupados en el bloque y newFileName
 //recibo el resultado del Worker y se lo informo a YAMA
-char etapaTransformacion(char *ip_worker, int32_t puerto_worker, int block, char newTempFileName, int32_t *hs_ms, int32_t bytesOcupados, int32_t socketWorker){
-	char resultado = 'FAIL';
+char etapaTransformacion(char* ip_worker, int32_t puerto_worker, int block, char* newTempFileName, int32_t *hs_ms, int32_t bytesOcupados){
+	int resultado = 0;
+	char res[] = "FAIL";
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
 
 	void* data = NULL;
-	int dimension = 0;
+	int32_t dimension = 0;
 
 	devolverDireccion("transformador",data,dimension);
 
-	enviar_todo(socketWorker,data,dimension,logger);
-	enviar(socketWorker,block,sizeof(int),logger);
-	enviar(socketWorker,bytesOcupados,sizeof(int32_t),logger);
-	enviar(socketWorker,newTempFileName,sizeof(char),logger);
-	enviar(socketWorker,&resultado,sizeof(char),logger); //Le paso la direccion de resultado porque hago el control directamente en el worker.
+	enviar(socketMaster,dimension,sizeof(int32_t),logger); //Envio la dimension de data como paso previo
+	enviar_todo(socketMaster,data,dimension,logger);
+	enviar(socketMaster,block,sizeof(int),logger);
+	enviar(socketMaster,bytesOcupados,sizeof(int32_t),logger);
+	//ver si necesito calcular el sizeof newTempFileName antes
+	enviar(socketMaster,newTempFileName,sizeof(char*),logger);
+	recibir(socketMaster,&resultado,sizeof(int),logger);
 
-	return resultado;
+	if(resultado == 1)
+		res = "OK";
+
+	return res;
 }
 
 //Cuando en un Nodo se ejecutaron todas las operaciones de Transformación,
@@ -58,8 +64,9 @@ char etapaTransformacion(char *ip_worker, int32_t puerto_worker, int block, char
 //ACA ME CONECTO CON EL WORKER Y LE MANDO: el REDUCTOR, lista de archivos temporales del Nodo, nombre del nuevo archivo a crear. (ver cuando terminen yama como obtengo los datos de cada worker
 	//recibo el resultado del Worker y se lo informo a YAMA
 //por cada hilo que creo(por nodo), voy llevando un contador que se va restando cada vez que termina con exito un resultado
-char etapaReduccionLocal(char *ip_worker, int32_t puerto_worker, char tempFile, char newFileName, int* contador, int32_t socketWorker){
-	char resultado = 'FAIL';
+char etapaReduccionLocal(char* ip_worker, int32_t puerto_worker, char tempFile, char* newFileName, int *contador, int32_t hs_ms){
+	int resultado = 0;
+	char res[] = "FAIL";
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
 
@@ -68,15 +75,21 @@ char etapaReduccionLocal(char *ip_worker, int32_t puerto_worker, char tempFile, 
 
 	devolverDireccion("reductor",data,dimension);
 
-	enviar_todo(socketWorker,data,dimension,logger);
-	enviar(socketWorker,tempFile,sizeof(char),logger);
-	enviar(socketWorker,newFileName,sizeof(char),logger);
-	enviar(socketWorker,&resultado,sizeof(char),logger); //Le paso la direccion de resultado porque hago el control directamente en el worker.
 
-	if(resultado == 'OK')
+	enviar(socketMaster,dimension,sizeof(int32_t),logger); //Envio la dimension de data como paso previo
+	enviar_todo(socketMaster,data,dimension,logger);
+	enviar(socketMaster,tempFile,sizeof(char),logger);
+	//ver si necesito calcular el sizeof newFileName antes
+	enviar(socketMaster,newFileName,sizeof(newFileName),logger);
+	recibir(socketMaster,&resultado,sizeof(int),logger);
+
+		if(resultado == 1)
+			res = "OK";
+
+	if( res == "OK")
 		contador--;
 
-	return resultado;
+	return res;
 }
 
 //ACA ME CONECTO CON EL WORKER ENCARGADO Y LE MANDO: el REDUCTOR, una lista/estructura de los workers con sus IPs y puertos, lista de archivos temporales de Reduccion Local, ruta donde guardar el resultado
