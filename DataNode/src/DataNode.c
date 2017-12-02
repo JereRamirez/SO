@@ -64,6 +64,7 @@ void *loadConfig(char* path,int32_t *client,int32_t *cantBloques,t_log *log){
     keysNodo(aux,log);
 
     char *data = mapFile(config_get_string_value(aux,"RUTA_DATABIN"),cantBloques,log);
+    log_info(log,"CANTIDAD DE BLOQUES == %i",*cantBloques);
     *client = cliente(config_get_string_value(aux,"IP_FILESYSTEM"),config_get_int_value(aux,"PUERTO_FILESYSTEM"),10100,log);
     char* nombreNodo = config_get_string_value(aux,"NOMBRE_NODO");
     int32_t lenNombre = strlen(nombreNodo)+1;
@@ -93,7 +94,7 @@ int main(int argc, char* argv[]) {
         default:
             exit(-1);
     }
-    int32_t datosRecibido=1,msg;
+    int32_t datosRecibido=1,msg=1;//msg=1 state inicial
     int32_t sizeBus;
     void* bloqueBin;
     for(;datosRecibido >0;datosRecibido = recibir(socket,&msg,sizeof(int32_t),log)){
@@ -102,6 +103,7 @@ int main(int argc, char* argv[]) {
                 datosRecibido= recibir(socket,&msg,sizeof(int32_t),log);
                 if(!datosRecibido>0)
                     break;
+                log_info(log,"ME PIDIO EL BLOQUE %d",msg);
                 if(msg<cantBloques){
                     bloqueBin= getBloque(msg,dataBin);
                     msg=1;
@@ -137,8 +139,11 @@ int main(int argc, char* argv[]) {
                     free(bloqueBin);
                     enviar(socket,&msg,sizeof(int32_t),log);
                 }
-
                 break;
+	        case 20:
+		        log_info(log,"INICIO ESCUCHA DE COMANDOS");
+		        break;
+		
             default:
                 log_error(log,"Mensaje recibido \"%d\" INVALIDO",msg);
 
