@@ -21,6 +21,14 @@ t_config* config = NULL;
 t_log* logger = NULL;
 t_list* tabla;
 
+struct listaWorkers{
+	char* ip_worker;
+	int32_t puerto_worker;
+	char tempFileName[];
+	int bitEncargado;
+	struct listaWorkers *next;
+};
+
 void devolverDireccion(char* rutina,void* data,int32_t* dimension){
 		FILE* archivo = fopen(rutina,"r");
 		fseek(archivo,0,SEEK_END);
@@ -94,7 +102,7 @@ char etapaReduccionLocal(char* ip_worker, int32_t puerto_worker, char tempFile, 
 
 //ACA ME CONECTO CON EL WORKER ENCARGADO Y LE MANDO: el REDUCTOR, una lista/estructura de los workers con sus IPs y puertos, lista de archivos temporales de Reduccion Local, ruta donde guardar el resultado
 	//recibo el resultado del Worker y se lo informo a YAMA
-char etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker, int32_t socketWorker, char listaWorkers, char tempListFiles){
+char etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker, struct listaWorkers, char tempListFiles){
 	char resultado = 'FAIL';
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
@@ -104,7 +112,8 @@ char etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker, int32_t socket
 
 	devolverDireccion("reductor",data,dimension);
 
-	enviar_todo(socketWorker,data,dimension,logger);
+	enviar_todo(socketMaster,data,dimension,logger);
+	enviar(socketMaster,listaWorkers,sizeof(listawoerkers),logger);
 
 return resultado;
 }
