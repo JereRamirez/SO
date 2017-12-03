@@ -214,7 +214,8 @@ void mostrarConsola() {
 		}
 
 		if(!strncmp(linea, "format", 6)) {
-			puts("Formateando FS \n");
+			formatearFilesystem();
+			puts("Filesystem formateado");
 		}
 
 		lineas = string_split(linea, " ");
@@ -490,7 +491,11 @@ void mostrarInfoArchivo(char* pathArchivo){
 	}else{
 		t_archivo* archivo = NULL;
 		archivo = buscarArchivoPorNombreAbsoluto(pathArchivo);
+		if(archivo != NULL){
 		mostrarInfoCompletaArchivo(archivo);
+		}else{
+			puts("El archivo no existe");
+		}
 	}
 }
 
@@ -653,12 +658,17 @@ char* getBloqueArchivo(t_archivo* archivo, int numeroBloque){
 		t_nodo* nodo = buscarNodoPorNombre(nb->info->nombre);
 		if(nodo != NULL){
 			if(nodoEstaConectado(nodo)){
-				enviarHeader(nodo->fd, GETBLOQUE);
+				int32_t header = GETBLOQUE;
+				enviarHeader(nodo->fd, header);
 				enviarInt(nodo->fd, nb->numeroBloque);
-				recv(nodo->fd, datosBloque, TAMANIO_BLOQUE, MSG_WAITALL);
-				char* bloqueAux = string_substring_until(datosBloque ,block->tamanio);
-				return bloqueAux;
-				break;
+				int32_t rs = recibirInt(nodo->fd);
+				if(rs == 1){
+					recv(nodo->fd, datosBloque, TAMANIO_BLOQUE, MSG_WAITALL);
+					char* bloqueAux = string_substring_until(datosBloque ,block->tamanio);
+					return bloqueAux;
+				}else{
+					puts("El nodo se desconecto");
+				}
 
 			}else{
 				marcarNodoComoDesconectado(nodo);
@@ -717,7 +727,7 @@ int procesarMensaje(int fd){
 }
 
 int recibirInfoNodo(int fd){
-
+    enviarInt(fd, 1);
 	int32_t cantBloquesData = recibirInt(fd);
 	char* nombre = recibirString(fd);
 	int32_t puerto = recibirInt(fd);
@@ -733,9 +743,8 @@ int recibirInfoNodo(int fd){
 	t_nodo* nodo = crearNodoNuevo(fd, nombre, ipNodo, string_itoa(puerto), cantBloquesData);
 	list_add(filesystem.nodos, nodo);
 	printInfoNodo(nodo);
-	enviarInt(fd, HANDSHAKE_OK);
 	freeNull(nombre);
-	persistirNodos();
+	//persistirNodos();
 	return 1;
 }
 
@@ -788,7 +797,11 @@ void printInfoNodo(t_nodo* nodo){
 }
 
 bool nodoEstaConectado(t_nodo* nodo){
-	return true;
+	if(enviarInt(nodo->fd, 202) < 0){
+	return false;
+	}else{
+		return true;
+	}
 }
 
 t_bitmap* crearBitmap(int32_t tamanio) {
@@ -923,35 +936,54 @@ int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque){
 	int fd2 = buscarNodoPorNombre(nb2->info->nombre)->fd;
 	printf("FD nodo 1: %d\n", fd1);
 	printf("FD nodo 2: %d\n", fd2);
+	int32_t rs;
 	puts("Enviando bloque");
-	enviarHeader(fd1, SETBLOQUE);
+	int32_t header = SETBLOQUE;
+	enviarHeader(fd1, header);
 	puts("Header enviado!");
 	enviarInt(fd1, nb1->numeroBloque);
 	puts("Numero de bloque enviado!");
-	printf("tamaño del bloque:%d\n", string_length(bloque));
-	if (enviarString(fd1, bloque) <= 0){
+	int32_t size = string_length(bloque);
+	printf("tamaño del bloque:%d\n", size);
+	enviarInt(fd1, size);
+	if (send(fd1, (void*)bloque, size, MSG_NOSIGNAL) <= 0){
 		perror("Error al mandar el bloque al nodo\n");
 		freeNull(nb1);
 		freeNull(nb2);
 		freeNull(bloque);
 		return -1;
 	}else{
-		marcarBloqueComoUsado(nb1->info->nombre, nb1->numeroBloque);
-		puts("Bloque 1 enviado al primer nodo!");
+		puts("char enviado");
+		rs = recibirInt(fd1);
+		if (rs == 1){
+			marcarBloqueComoUsado(nb1->info->nombre, nb1->numeroBloque);
+			puts("Bloque 1 enviado al primer nodo!");
+		}else{
+			puts("DN no pudo guardar el bloque");
+			return -1;
+		}
 	}
-	enviarHeader(fd2, SETBLOQUE);
+	enviarHeader(fd2, header);
 	puts("Header enviado!");
 	enviarInt(fd2, nb2->numeroBloque);
 	puts("Numero de bloque enviado!");
-	if (enviarString(fd2, bloque) <= 0){
+	enviarInt(fd2, size);
+	if (send(fd2, (void*)bloque, size, MSG_NOSIGNAL) <= 0){
 		perror("Error al mandar el bloque al nodo\n");
 		freeNull(nb1);
 		freeNull(nb2);
 		freeNull(bloque);
 		return -1;
 	}else{
-		marcarBloqueComoUsado(nb2->info->nombre, nb2->numeroBloque);
-		puts("Bloque 2 enviado al segundo nodo!");
+		puts("char enviado");
+		rs = recibirInt(fd2);
+		if (rs == 1){
+			marcarBloqueComoUsado(nb2->info->nombre, nb2->numeroBloque);
+			puts("Bloque 2 enviado al segundo nodo!");
+		}else{
+			puts("DN no pudo guardar el bloque");
+			return -1;
+		}
 	}
 	freeNull(bloque);
 	return 1;
@@ -1283,6 +1315,9 @@ void moverArchivo(char* nombre, int idDirArchivo, char* dirDestino){
 
 void borrarArchivoFs(char* nombre, int dirId){
 	t_archivo* archivo = buscarArchivoPorNombre(filesystem.archivos, nombre, dirId);
+	char* pathMetadata = getPathMetadataArchivo(archivo);
+	remove(pathMetadata);
+	freeNull(pathMetadata);
 	void _liberar_bloque(t_archivo_bloque* ab){
 		void _liberar_copia(t_archivo_nodo_bloque* anb){
 			marcarBloqueComoLibre(anb->info->nombre, anb->numeroBloque);
@@ -1290,24 +1325,22 @@ void borrarArchivoFs(char* nombre, int dirId){
 		list_iterate(ab->nodosBloque, (void*)_liberar_copia);
 	}
 	list_iterate(archivo->bloquesDeDatos, (void*)_liberar_bloque);
-	char* pathMetadata = getPathMetadataArchivo(archivo);
-	remove(pathMetadata);
-	freeNull(pathMetadata);
 	bool _es_archivo_buscado(t_archivo* arch){
 		return arch->info->nombre == nombre && arch->info->directorio == dirId;
 	}
 	list_remove_and_destroy_by_condition(filesystem.archivos, (void*)_es_archivo_buscado, (void*)destroyArchivo);
+	freeNull(archivo);
 }
 
 void destroyArchivo(t_archivo* archivo){
 	freeNull(archivo->info);
 	list_destroy_and_destroy_elements(archivo->bloquesDeDatos, (void*)destroyBloqueDeDatos);
-	//freeNull(archivo);
+	freeNull(archivo);
 }
 
 void destroyBloqueDeDatos(t_archivo_bloque* bloque_de_datos){
 	list_destroy_and_destroy_elements(bloque_de_datos->nodosBloque,(void*)destruirArchivoNodoBloque);
-	//freeNull(bloque_de_datos)
+	freeNull(bloque_de_datos)
 }
 
 void borrarBloqueDeArchivo(char* pathArchivo, int bloque, int copia){
