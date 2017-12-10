@@ -22,6 +22,7 @@
 t_config* config = NULL;
 t_log* logger = NULL;
 t_list* tabla;
+int hswk = 5050;
 
 struct ListaWorkers{
 	char* ip_worker;
@@ -43,9 +44,9 @@ void devolverDireccion(char* rutina,void* data,int32_t* dimension){
 
 //ACA ME CONECTO CON EL WORKER Y LE MANDO: el TRANSFORMADOR, bloque en el cual debe hacer la transformacion, bytes ocupados en el bloque y newFileName
 //recibo el resultado del Worker y se lo informo a YAMA
-char* etapaTransformacion(char* ip_worker, int32_t puerto_worker, int block, char* newTempFileName, int32_t *hs_ms, int32_t bytesOcupados){
+result etapaTransformacion(char* ip_worker, int32_t puerto_worker, int block, char* newTempFileName, int32_t *hs_ms, int32_t bytesOcupados){
 	int resultado = 0;
-	char* res = "FAIL";
+	result res = FAIL;
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
 
@@ -63,7 +64,7 @@ char* etapaTransformacion(char* ip_worker, int32_t puerto_worker, int block, cha
 	recibir(socketMaster,&resultado,sizeof(int),logger);
 
 	if(resultado == 1)
-		res = "OK";
+		res = OK;
 
 	return res;
 }
@@ -74,9 +75,9 @@ char* etapaTransformacion(char* ip_worker, int32_t puerto_worker, int block, cha
 //ACA ME CONECTO CON EL WORKER Y LE MANDO: el REDUCTOR, lista de archivos temporales del Nodo, nombre del nuevo archivo a crear. (ver cuando terminen yama como obtengo los datos de cada worker
 	//recibo el resultado del Worker y se lo informo a YAMA
 //por cada hilo que creo(por nodo), voy llevando un contador que se va restando cada vez que termina con exito un resultado
-char* etapaReduccionLocal(char* ip_worker, int32_t puerto_worker, char tempFile, char* newFileName, int *contador, int32_t hs_ms){
+result etapaReduccionLocal(char* ip_worker, int32_t puerto_worker, char tempFile, char* newFileName, int *contador, int32_t hs_ms){
 	int resultado = 0;
-	char* res = "FAIL";
+	result res = FAIL;
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
 
@@ -94,9 +95,9 @@ char* etapaReduccionLocal(char* ip_worker, int32_t puerto_worker, char tempFile,
 	recibir(socketMaster,&resultado,sizeof(int),logger);
 
 		if(resultado == 1)
-			res = "OK";
+			res = OK;
 
-	if( res == "OK")
+	if( res == OK)
 		contador--;
 
 	return res;
@@ -104,8 +105,8 @@ char* etapaReduccionLocal(char* ip_worker, int32_t puerto_worker, char tempFile,
 
 //ACA ME CONECTO CON EL WORKER ENCARGADO Y LE MANDO: el REDUCTOR, una lista/estructura de los workers con sus IPs y puertos, lista de archivos temporales de Reduccion Local, ruta donde guardar el resultado
 	//recibo el resultado del Worker y se lo informo a YAMA
-char* etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms, struct listaWorkers, char tempListFiles){
-	char* resultado = "FAIL";
+result etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms, struct listaWorkers, char tempListFiles){
+	result resultado = FAIL;
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
 
@@ -122,8 +123,8 @@ return resultado;
 
 //ACA ME CONECTO CON EL WORKER ENCARGADO Y SOLICITo: que se conecte al filesystem y le envie el contenido del archivo de Reduccion Global y el nombre y ruta que este debera tener.
 	//recibo el resultado del Worker y se lo informo a YAMA
-char* etapaAlmacenadoFinal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms, int32_t socketWorker){
-	char* resultado = "FAIL";
+result etapaAlmacenadoFinal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms, int32_t socketWorker){
+	result resultado = FAIL;
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
 
@@ -149,9 +150,130 @@ void levantarLog()
 	logger = log_create("master.log","MASTER",0,LOG_LEVEL_TRACE);
 }
 
-void awakening()
+void manejadorEtapas(yamaPTH hilo)
 {
+	result resultado;
+	switch(hilo.Etapa){
+	case TRANSFORMA:
+		resultado = etapaTransformacion(hilo.Solicitud.Ip,hilo.Solicitud.puerto,hilo.Solicitud.Bloque,hilo.Solicitud.archivoTempTrans,hswk,hilo.Solicitud.cantidadBytes);
+		hilo.Result = resultado;
+		if (hilo.Result)
+		{
+			int32_t msg = strlen(hilo.Solicitud.Nodo);
 
+			enviar(hilo.socketYAMA,&(hilo.Result),sizeof(int32_t),logger);
+
+			enviar(hilo.socketYAMA,&(hilo.Etapa),sizeof(int32_t),logger);
+
+			enviar(hilo.socketYAMA,&msg,sizeof(int32_t),logger);
+			enviar(hilo.socketYAMA,&(hilo.Solicitud.Nodo),msg,logger);
+
+			// aca empiezo a recibir las cosas para la proxima etapa
+
+			recibir(hilo.socketYAMA,&msg,sizeof(int32_t),logger);
+			hilo.Solicitud.archivoTempReduLocal = malloc(msg+1);
+			recibir(hilo.socketYAMA,hilo.Solicitud.archivoTempReduLocal,msg,logger);
+
+			hilo.Etapa = REDULOCAL;
+		}
+		else
+		{
+			int msg;
+			enviar(hilo.socketYAMA,&(hilo.Result),sizeof(int32_t),logger);
+
+			// aca recibiria el nuevo nodo sobre el cual operar
+			//recibir(hilo.socketYAMA,)
+		}
+		manejadorEtapas(hilo);
+		break;
+	case REDULOCAL:
+		//resultado = etapaReduccionLocal(); falta esto
+		hilo.Result = resultado;
+
+		if (hilo.Result)
+		{
+			int32_t msg = strlen(hilo.Solicitud.Nodo);
+
+			enviar(hilo.socketYAMA,&(hilo.Result),sizeof(int32_t),logger);
+
+			enviar(hilo.socketYAMA,&(hilo.Etapa),sizeof(int32_t),logger);
+
+			enviar(hilo.socketYAMA,&msg,sizeof(int32_t),logger);
+			enviar(hilo.socketYAMA,&(hilo.Solicitud.Nodo),msg,logger);
+
+			// aca empiezo a recibir las cosas para la proxima etapa
+
+			//etapa reduglobal
+
+			hilo.Etapa = REDUGLOBAL;
+		}
+		else
+		{
+			int msg;
+			enviar(hilo.socketYAMA,&(hilo.Result),sizeof(int32_t),logger);
+
+			//aca se abortaria
+		}
+		break;
+	case REDUGLOBAL:
+			//resultado = etapaReduccionGlobal(); falta esto
+			hilo.Result = resultado;
+
+			if (hilo.Result)
+			{
+				int32_t msg = strlen(hilo.Solicitud.Nodo);
+
+				enviar(hilo.socketYAMA,&(hilo.Result),sizeof(int32_t),logger);
+
+				enviar(hilo.socketYAMA,&(hilo.Etapa),sizeof(int32_t),logger);
+
+				enviar(hilo.socketYAMA,&msg,sizeof(int32_t),logger);
+				enviar(hilo.socketYAMA,&(hilo.Solicitud.Nodo),msg,logger);
+
+				// aca empiezo a recibir las cosas para la proxima etapa
+
+				// etapa almacenamiento
+
+				hilo.Etapa = ALMACENA;
+			}
+			else
+			{
+				int msg;
+				enviar(hilo.socketYAMA,&(hilo.Result),sizeof(int32_t),logger);
+
+				//aca se abortaria
+			}
+		break;
+	case ALMACENA:
+			//resultado = etapaReduccionGlobal(); falta esto
+			hilo.Result = resultado;
+
+			if (hilo.Result)
+			{
+				int32_t msg = strlen(hilo.Solicitud.Nodo);
+
+				enviar(hilo.socketYAMA,&(hilo.Result),sizeof(int32_t),logger);
+
+				enviar(hilo.socketYAMA,&(hilo.Etapa),sizeof(int32_t),logger);
+
+				enviar(hilo.socketYAMA,&msg,sizeof(int32_t),logger);
+				enviar(hilo.socketYAMA,&(hilo.Solicitud.Nodo),msg,logger);
+
+				// aca empiezo a recibir las cosas para la proxima etapa
+
+				// etapa almacenamiento
+
+				//aca se finaliza el hilo
+			}
+			else
+			{
+				int msg;
+				enviar(hilo.socketYAMA,&(hilo.Result),sizeof(int32_t),logger);
+
+				//aca se abortaria
+			}
+		break;
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -206,18 +328,21 @@ int main(int argc, char *argv[]) {
 		solicitudes[i].Ip = malloc(msg+1);
 		recibir(socketCYAMA, solicitudes[i].Ip, msg, logger);
 
+		recibir(socketCYAMA, &(solicitudes[i].puerto), sizeof(int32_t), logger);
+
 		recibir(socketCYAMA, &(solicitudes[i].Bloque), sizeof(int32_t), logger);
 
 		recibir(socketCYAMA, &(solicitudes[i].cantidadBytes), sizeof(int32_t), logger);
 
 		recibir(socketCYAMA,&msg,sizeof(int32_t),logger);
-		solicitudes[i].archivoTemp = malloc(msg+1);
-		recibir(socketCYAMA, solicitudes[i].archivoTemp, msg, logger);
+		solicitudes[i].archivoTempTrans = malloc(msg+1);
+		recibir(socketCYAMA, solicitudes[i].archivoTempTrans, msg, logger);
 
 		aux[i].Solicitud = solicitudes[i];
 		aux[i].socketYAMA = socketCYAMA;
+		aux[i].Etapa = TRANSFORMA;
 
-		pthread_create(aux[i].hilo,NULL,etapaTransformacion,aux[i]);
+		pthread_create(aux[i].hilo,NULL,manejadorEtapas,aux[i]);
 	}
 
 
