@@ -693,6 +693,19 @@ int copiarBloque(char* archivo, int numBloque, char* nodo){
 				enviarInt(nodoAux->fd, bloqueLibre);
 				enviarString(nodoAux->fd, bloque);
 				freeNull(bloque);
+				int32_t rs = recibirInt(nodoAux->fd);
+				if(rs == 1){
+					t_archivo_bloque* block = list_get(arch->bloquesDeDatos, numBloque);
+					t_archivo_nodo_bloque* anb = crearArchivoNodoBloque();
+					memcpy(anb->info, nodoAux->info, sizeof(t_nodo_info));
+					anb->numeroBloque = bloqueLibre;
+					list_add(block->nodosBloque, anb);
+					persistirArchivo(arch, getPathMetadataArchivo(arch));
+					persistirNodos();
+					return 1;
+				}else{
+					return -1;
+				}
 			}else{
 				return -1;
 			}
@@ -963,6 +976,7 @@ int enviarBloqueANodos(t_archivo_bloque* bloqueArchivo, char* bloque){
 			return -1;
 		}
 	}
+	sleep(1);
 	enviarHeader(fd2, header);
 	puts("Header enviado!");
 	enviarInt(fd2, nb2->numeroBloque);
@@ -1136,7 +1150,7 @@ void destruirArchivoNodoBloque(t_archivo_nodo_bloque* anb1){
 	freeNull(anb1);
 }
 
-t_archivo_bloque* crearBloqueArchivo(int numero, int tamanio){
+t_archivo_bloque* crearBloqueArchivo(int numero, int32_t tamanio){
 	t_archivo_bloque* bloqueArchivo = malloc(sizeof(t_archivo_bloque));
 	bloqueArchivo->numeroBloque = numero;
 	bloqueArchivo->tamanio = tamanio;
@@ -1314,7 +1328,10 @@ void moverArchivo(char* nombre, int idDirArchivo, char* dirDestino){
 }
 
 void borrarArchivoFs(char* nombre, int dirId){
-	t_archivo* archivo = buscarArchivoPorNombre(filesystem.archivos, nombre, dirId);
+	bool _es_archivo_buscado(t_archivo* arch){
+		return string_equals_ignore_case(arch->info->nombre, nombre) && arch->info->directorio == dirId;
+	}
+	t_archivo* archivo = list_remove_by_condition(filesystem.archivos, (void*)_es_archivo_buscado);
 	char* pathMetadata = getPathMetadataArchivo(archivo);
 	remove(pathMetadata);
 	freeNull(pathMetadata);
@@ -1325,11 +1342,7 @@ void borrarArchivoFs(char* nombre, int dirId){
 		list_iterate(ab->nodosBloque, (void*)_liberar_copia);
 	}
 	list_iterate(archivo->bloquesDeDatos, (void*)_liberar_bloque);
-	bool _es_archivo_buscado(t_archivo* arch){
-		return arch->info->nombre == nombre && arch->info->directorio == dirId;
-	}
-	list_remove_and_destroy_by_condition(filesystem.archivos, (void*)_es_archivo_buscado, (void*)destroyArchivo);
-	freeNull(archivo);
+    destroyArchivo(archivo);
 }
 
 void destroyArchivo(t_archivo* archivo){
@@ -1364,6 +1377,52 @@ void borrarBloqueDeArchivo(char* pathArchivo, int bloque, int copia){
 			}
 		}
 	}
+}
+
+/* Orden de envio info de un archivo a YAMA
+ *
+ * 1 - Cantidad de bloques que componen el archivo
+ *
+ * (Ahora mando la info de cada bloque)
+ *
+ * 2 - Tamaño del bloque
+ * 3 - Cantidad de copias del bloque, ya que podrian ser mas de dos
+ *
+ * (Ahora mando la info de cada copia del bloque)
+ *
+ * 4 - Nombre del nodo
+ * 5 - IP del nodo
+ * 6 - Puerto del nodo
+ * 7 - Numero del bloque del nodo donde esta el contenido del bloque
+ *
+ */
+
+int enviarInfoArchivo(int fd, char* path){
+	t_archivo* archivo = buscarArchivoPorNombreAbsoluto(path);
+	if(archivo == NULL){
+		int32_t rs = -1;
+		enviarInt(fd, rs);
+		return rs;
+	}else{
+		int32_t cantBloques = archivo->info->cantBloques;
+		enviarInt(fd, cantBloques);
+		int i, j;
+		for(i = 0; i < cantBloques; i++){
+          t_archivo_bloque* bloque = list_get(archivo->bloquesDeDatos, i);
+          int32_t size = bloque->tamanio;
+          enviarInt(fd, size);
+          int32_t cantCopiasBloque = list_size(bloque->nodosBloque);
+          enviarInt(fd, cantCopiasBloque);
+          for(j = 0; j < cantCopiasBloque; j++){
+        	  t_archivo_nodo_bloque* anb = list_get(bloque->nodosBloque, j);
+        	  enviarString(fd, anb->info->nombre);
+        	  enviarString(fd, anb->info->ip);
+        	  enviarInt(fd, atoi(anb->info->puerto));
+        	  enviarInt(fd, anb->numeroBloque);
+          }
+		}
+	}
+	return 1;
 }
 
 /* FIN FUNCIONES DE ARCHIVOS */

@@ -89,8 +89,8 @@ typedef struct {
 
 typedef struct { //estructura que tiene las dos copias del bloque
 	int numeroBloque;
-	t_list* nodosBloque; //tiene dos t_archivo_nodo_bloque, una por cada copia
-	long tamanio;
+	t_list* nodosBloque; //tiene dos t_archivo_nodo_bloque, una por cada copia (podrian ser mas)
+	int32_t tamanio;
 } t_archivo_bloque;
 
 typedef struct {
@@ -163,7 +163,7 @@ void mostrarInfoArchivo(char* archivo); //DONE
 
 bool existeArchivoEnFS(char* nombre, int dir_id);
 t_archivo_info* getInfoArchivo(char* nombre, char* tipo, int dirPadre);
-t_archivo_bloque* crearBloqueArchivo(int numero, int tamanio);
+t_archivo_bloque* crearBloqueArchivo(int numero, int32_t tamanio);
 t_archivo_nodo_bloque* crearArchivoNodoBloque();
 void destruirArchivoNodoBloque(t_archivo_nodo_bloque* anb1);
 t_archivo_bloque* buscarBloqueArchivo(t_archivo* archivo, int numeroBloque);
@@ -184,6 +184,7 @@ void moverArchivo(char* nombre, int idDirArchivo, char* dirDestino);
 void borrarBloqueDeArchivo(char* pathArchivo, int bloque, int copia);
 void destroyArchivo(t_archivo* archivo);
 void destroyBloqueDeDatos(t_archivo_bloque* bloque_de_datos);
+int enviarInfoArchivo(int fd, char* path);
 
 /* FUNCIONES DIRECTORIOS */
 
