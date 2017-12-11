@@ -103,9 +103,10 @@ result etapaReduccionLocal(char* ip_worker, int32_t puerto_worker, char tempFile
 	return res;
 }
 
-//ACA ME CONECTO CON EL WORKER ENCARGADO Y LE MANDO: el REDUCTOR, una lista/estructura de los workers con sus IPs y puertos, lista de archivos temporales de Reduccion Local, ruta donde guardar el resultado
+//ACA ME CONECTO CON EL WORKER ENCARGADO Y LE MANDO: el REDUCTOR, una lista/estructura de los workers con sus IPs y puertos(ver como me pasa yama)
+//lista de archivos temporales de Reduccion Local, ruta donde guardar el resultado
 	//recibo el resultado del Worker y se lo informo a YAMA
-result etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms, struct listaWorkers, char tempListFiles){
+result etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms, struct listaWorkers, char newPathFile){
 	result resultado = FAIL;
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
@@ -116,7 +117,8 @@ result etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms
 	devolverDireccion("reductor",data,dimension);
 
 	enviar_todo(socketMaster,data,dimension,logger);
-	enviar(socketMaster,listaWorkers,sizeof(listaWorkers),logger);
+	enviar(socketMaster,listaWorkers,sizeof(listaWorkers),logger); //ver como me lo pasa yama para pasarselo al worker
+	enviar(socketMaster,newPathFile,sizeof(newPathFile),logger);	//ver como paso el path del nuevo file
 
 return resultado;
 }
@@ -127,6 +129,9 @@ result etapaAlmacenadoFinal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms
 	result resultado = FAIL;
 
 	int32_t socketMaster = cliente(ip_worker, puerto_worker, hs_ms, logger);
+	enviar(socketMaster,ip_fs,sizeof(ip_fs),logger); //veo si me pasa el ip del fs yama o como lo tengo
+	enviar(socketMaster,puerto_fs,sizeof(int32_t),logger); //veo si me pasa el puerto del fs yama o como lo tengo
+	enviar(socketMaster,newPathFile,sizeof(newPathFile),logger);	//ver como paso el path del nuevo file
 
 return resultado;
 }

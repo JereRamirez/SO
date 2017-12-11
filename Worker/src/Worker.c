@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <Shared/servidores.h>
+#include "libConexion.h"
 
 char port[20];
 
@@ -48,7 +49,7 @@ void etapaReduLocal(int32_t puerto, int32_t cantidadConexiones, int32_t hs_wk){
 
 
 	recibir(socketMaster,&dimension,sizeof(int32_t),logger);
-	int32_t bytesTransformador = recibir_todo(socketMaster,&data,dimension,logger);
+	int32_t bytesLocal = recibir_todo(socketMaster,&data,dimension,logger);
 	recibir(socketMaster,&tempFile,sizeof(char),logger);
 	 //ver si necesito calcular el sizeof newFileName antes
 	recibir(socketMaster,newFileName,sizeof(newFileName),logger);
@@ -61,9 +62,24 @@ void etapaReduLocal(int32_t puerto, int32_t cantidadConexiones, int32_t hs_wk){
 }
 
 //Ver como me pasa la lista de Workers y sus archivos para los dos parametros de la funcion que faltan
-char etapaReduGlobal(void REDUCTOR(char* file, char newFile), ,){
+void etapaReduGlobal(int32_t puerto, int32_t cantidadConexiones, int32_t hs_wk){
 	char estado = 'FAIL';
 	int contaux = 0;
+	void* data = NULL;
+	int block, resultado = 0;
+	int32_t bytesOcupados, dimension;
+	char tempFile[], newFileName[];
+
+	 int32_t socketWorker = servidor(puerto, cantidadConexiones,logger);
+	 int32_t socketMaster = aceptarCliente(socketWorker,hs_wk,logger);
+
+
+	recibir(socketMaster,&dimension,sizeof(int32_t),logger);
+	int32_t bytesGlobal = recibir_todo(socketMaster,&data,dimension,logger);
+	recibir(socketMaster,&listaWorkers,sizeof(listaWorkers),logger); //ver como me lo pasa yama para pasarselo al worker
+	recibir(socketMaster,&newPathFile,sizeof(newPathFile),logger);	//ver como paso el path del nuevo file
+
+
 
 	while(listaWorkers != NULL){
 		//ver como me conecto con cada worker para realizar el reductor en su archivo
@@ -73,8 +89,9 @@ char etapaReduGlobal(void REDUCTOR(char* file, char newFile), ,){
 	if(contaux == cantWorkers){
 		estado = 'OK';
 	}
-
-return estado;
+	enviar(socketMaster,resultado,sizeof(int),logger);
+l
+return ;
 }
 
 char etapaAlmFinal(char* fileGlobal, char newFile){
