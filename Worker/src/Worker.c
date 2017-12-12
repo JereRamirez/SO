@@ -80,9 +80,9 @@ void etapaReduGlobal(int32_t puerto, int32_t cantidadConexiones, int32_t hs_wk){
 	recibir(socketMaster,&newPathFile,sizeof(newPathFile),logger);	//ver como paso el path del nuevo file
 
 
-
+//ver como uso la funcion que me pasa el worker
 	while(listaWorkers != NULL){
-		//ver como me conecto con cada worker para realizar el reductor en su archivo
+
 		REDUCTOR(fileWorkers, newFile);
 		contaux++;
 	}
@@ -90,14 +90,26 @@ void etapaReduGlobal(int32_t puerto, int32_t cantidadConexiones, int32_t hs_wk){
 		estado = 'OK';
 	}
 	enviar(socketMaster,resultado,sizeof(int),logger);
-l
+
 return ;
 }
 
-char etapaAlmFinal(char* fileGlobal, char newFile){
+//Me conecto al FS y le mando el archivo de red global
+char etapaAlmFinal(int32_t puerto, int32_t cantidadConexiones, int32_t hs_wk){
 	char estado = 'FAIL';
-//Ver como me conecto al FileSystem para enviarle el contendio del fileGlobal (primero tengo que crear el nuevo archivo y recien ahi se lo paso al FS?)
-//depende como haga el proceso, cambio estado a OK en caso de salir correcto.
+	int resultado = 0;
+
+	int32_t socketWorker = servidor(puerto, cantidadConexiones,logger);
+	int32_t socketMaster = aceptarCliente(socketWorker,hs_wk,logger);
+
+	recibir(socketMaster,&ip_fs,sizeof(ip_fs),logger);
+	recibir(socketMaster,&puerto_fs,sizeof(int32_t),logger);
+	recibir(socketMaster,&newPathFile,sizeof(newPathfile),logger);
+
+	int32_t socketFS = cliente(ip_fs, puerto_fs, hs_wk, logger);
+
+
+	enviar(socketMaster,resultado,sizeof(int),logger);
 return estado;
 }
 

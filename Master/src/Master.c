@@ -120,6 +120,7 @@ result etapaReduccionGlobal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms
 	enviar(socketMaster,listaWorkers,sizeof(listaWorkers),logger); //ver como me lo pasa yama para pasarselo al worker
 	enviar(socketMaster,newPathFile,sizeof(newPathFile),logger);	//ver como paso el path del nuevo file
 
+	recibir(socketMaster,&resultado,sizeof(int),logger);
 return resultado;
 }
 
@@ -133,6 +134,7 @@ result etapaAlmacenadoFinal(char *ip_worker, int32_t puerto_worker,int32_t hs_ms
 	enviar(socketMaster,puerto_fs,sizeof(int32_t),logger); //veo si me pasa el puerto del fs yama o como lo tengo
 	enviar(socketMaster,newPathFile,sizeof(newPathFile),logger);	//ver como paso el path del nuevo file
 
+	recibir(socketMaster,&resultado,sizeof(int),logger);
 return resultado;
 }
 
