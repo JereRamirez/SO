@@ -695,12 +695,12 @@ int copiarBloque(char* archivo, int numBloque, char* nodo){
 				freeNull(bloque);
 				int32_t rs = recibirInt(nodoAux->fd);
 				if(rs == 1){
-					t_archivo_bloque* block = list_get(arch->bloquesDeDatos, numBloque);
+					t_archivo_bloque* block = buscarBloqueArchivo(arch, numBloque);
 					t_archivo_nodo_bloque* anb = crearArchivoNodoBloque();
 					memcpy(anb->info, nodoAux->info, sizeof(t_nodo_info));
 					anb->numeroBloque = bloqueLibre;
 					list_add(block->nodosBloque, anb);
-					persistirArchivo(arch, getPathMetadataArchivo(arch));
+					crearArchivoMetadata(arch);
 					persistirNodos();
 					return 1;
 				}else{
@@ -1408,18 +1408,18 @@ int enviarInfoArchivo(int fd, char* path){
 		enviarInt(fd, cantBloques);
 		int i, j;
 		for(i = 0; i < cantBloques; i++){
-          t_archivo_bloque* bloque = list_get(archivo->bloquesDeDatos, i);
-          int32_t size = bloque->tamanio;
-          enviarInt(fd, size);
-          int32_t cantCopiasBloque = list_size(bloque->nodosBloque);
-          enviarInt(fd, cantCopiasBloque);
-          for(j = 0; j < cantCopiasBloque; j++){
-        	  t_archivo_nodo_bloque* anb = list_get(bloque->nodosBloque, j);
-        	  enviarString(fd, anb->info->nombre);
-        	  enviarString(fd, anb->info->ip);
-        	  enviarInt(fd, atoi(anb->info->puerto));
-        	  enviarInt(fd, anb->numeroBloque);
-          }
+			t_archivo_bloque* bloque = buscarBloqueArchivo(archivo, i);
+			int32_t size = bloque->tamanio;
+			enviarInt(fd, size);
+			int32_t cantCopiasBloque = list_size(bloque->nodosBloque);
+			enviarInt(fd, cantCopiasBloque);
+			for(j = 0; j < cantCopiasBloque; j++){
+				t_archivo_nodo_bloque* anb = list_get(bloque->nodosBloque, j);
+				enviarString(fd, anb->info->nombre);
+				enviarString(fd, anb->info->ip);
+				enviarInt(fd, atoi(anb->info->puerto));
+				enviarInt(fd, anb->numeroBloque);
+			}
 		}
 	}
 	return 1;
